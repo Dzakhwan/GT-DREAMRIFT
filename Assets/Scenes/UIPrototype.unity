@@ -952,6 +952,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 1416900678}
   m_Enabled: 1
   m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48f3c57269039e549b2f7f9a28afbaff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIMainMenuButton
+  m_buttonType: 0
+  m_gameSceneName: Main
+  settingsPanel: {fileID: 0}
+  creditsPanel: {fileID: 0}
   m_Script: {fileID: 11500000, guid: 6836ccfe657b620409189dab4cfc5a2a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DialogueEditor.UIConversationButton
@@ -969,6 +976,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1478710784}
   - component: {fileID: 1478710785}
+  - component: {fileID: 1478710786}
   m_Layer: 5
   m_Name: Settings
   m_TagString: Untagged
@@ -1008,6 +1016,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6836ccfe657b620409189dab4cfc5a2a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DialogueEditor.UIConversationButton
+--- !u!114 &1478710786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1478710783}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48f3c57269039e549b2f7f9a28afbaff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIMainMenuButton
+  m_buttonType: 2
+  m_gameSceneName: Main
+  settingsPanel: {fileID: 0}
+  creditsPanel: {fileID: 0}
+  TextMesh: {fileID: 0}
   m_buttonType: 5
   m_gameSceneName: GameScene
   TextMesh: {fileID: 1679899136}
@@ -1058,6 +1083,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 1583103421}
   m_Enabled: 1
   m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48f3c57269039e549b2f7f9a28afbaff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIMainMenuButton
+  m_buttonType: 3
+  m_gameSceneName: Main
+  settingsPanel: {fileID: 0}
+  creditsPanel: {fileID: 0}
+  TextMesh: {fileID: 0}
   m_Script: {fileID: 11500000, guid: 6836ccfe657b620409189dab4cfc5a2a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DialogueEditor.UIConversationButton
@@ -1450,6 +1483,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 2089293515}
   m_Enabled: 1
   m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48f3c57269039e549b2f7f9a28afbaff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIMainMenuButton
+  m_buttonType: 1
+  m_gameSceneName: Main
+  settingsPanel: {fileID: 0}
+  creditsPanel: {fileID: 0}
+  TextMesh: {fileID: 0}
   m_Script: {fileID: 11500000, guid: 6836ccfe657b620409189dab4cfc5a2a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DialogueEditor.UIConversationButton
