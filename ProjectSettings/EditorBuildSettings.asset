@@ -20,6 +20,11 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 9fc0d4010bbf28b4594072e72b8655ab
+    path: Assets/Scenes/UIPrototype.unity
+    guid: 116093189543a724a817aa8b1167191b
+  - enabled: 1
+    path: Assets/Scenes/Main.unity
+    guid: 7b317289401b29a459667196320396af
   m_configObjects:
     com.unity.input.settings: {fileID: 11400000, guid: 9e7be553448fa2546aea5752021cbcf7, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 289c1b55c9541489481df5cc06664110, type: 3}
