@@ -384,8 +384,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuController
   level1Scene:
-    m_SceneAsset: {fileID: 102900000, guid: 7b317289401b29a459667196320396af, type: 3}
-    m_SceneName: Main
+    m_SceneAsset: {fileID: 102900000, guid: 116093189543a724a817aa8b1167191b, type: 3}
+    m_SceneName: UIPrototype
 --- !u!114 &547986277
 MonoBehaviour:
   m_ObjectHideFlags: 0
