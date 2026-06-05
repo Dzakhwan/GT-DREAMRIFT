@@ -1348,6 +1348,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1416900679}
   - component: {fileID: 1416900680}
+  - component: {fileID: 1416900681}
   m_Layer: 5
   m_Name: Play
   m_TagString: Untagged
@@ -1393,6 +1394,21 @@ MonoBehaviour:
   creditsPanel: {fileID: 0}
   TextMesh: {fileID: 1811568979}
   OptionBackgroundImage: {fileID: 0}
+--- !u!114 &1416900681
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1416900678}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 020b3f6d37c5c5a459c9edbc9cea79ed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MainMenuController
+  level1Scene:
+    m_SceneAsset: {fileID: 102900000, guid: 7b317289401b29a459667196320396af, type: 3}
+    m_SceneName: Main
 --- !u!1 &1478710783
 GameObject:
   m_ObjectHideFlags: 0
