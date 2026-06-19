@@ -1145,7 +1145,6 @@ GameObject:
   - component: {fileID: 585972885}
   - component: {fileID: 585972888}
   - component: {fileID: 585972887}
-  - component: {fileID: 585972886}
   m_Layer: 5
   m_Name: Inventory_Panel
   m_TagString: Untagged
@@ -1174,25 +1173,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 2478, y: 884}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &585972886
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 585972884}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 13be349a732f48d8aa29d02653f23a83, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Dreamrift.InventorySystem.InventoryUI
-  inventoryManager: {fileID: 1765642846}
-  panelRoot: {fileID: 585972884}
-  slotContainer: {fileID: 783861557}
-  slotPrefab: {fileID: 1760175491807922407, guid: cb6ed2a449e9b6a4caaab77e7c74ebf1, type: 3}
-  toggleButton: {fileID: 358823746}
-  closeButton: {fileID: 1148334488}
-  openOnStart: 0
 --- !u!114 &585972887
 MonoBehaviour:
   m_ObjectHideFlags: 0
