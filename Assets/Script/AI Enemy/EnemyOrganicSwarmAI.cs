@@ -134,6 +134,15 @@ public class EnemyOrganicSwarmAI : MonoBehaviour
                 stateTimer = attackPattern.WindUpTime;
                 agent.isStopped = true;
                 agent.ResetPath(); // Batalkan path pergerakan saat ini
+
+                // KUNCI ARAH SEJAK AWAL WIND-UP
+                Vector3 targetDir = (playerTarget.position - transform.position);
+                targetDir.y = 0;
+                targetDir.Normalize();
+                if (targetDir.sqrMagnitude > 0.01f)
+                {
+                    transform.rotation = Quaternion.LookRotation(targetDir);
+                }
                 return;
             }
         }
@@ -161,8 +170,7 @@ public class EnemyOrganicSwarmAI : MonoBehaviour
     {
         stateTimer -= Time.deltaTime;
 
-        // Buat musuh tetap menghadap ke player secara halus selama bersiap menyerang
-        LookAtTarget();
+        // JANGAN PANGGIL LookAtTarget() DI SINI AGAR ROTASI DIKUNCI!
 
         if (stateTimer <= 0f)
         {

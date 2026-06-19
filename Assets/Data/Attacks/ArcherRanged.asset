@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ad57afba3242604380b4c1a2a0aaeb5, type: 3}
   m_Name: ArcherRanged
   m_EditorClassIdentifier: Assembly-CSharp::RangedAttackSO
-  attackRange: 2
+  attackRange: 9.88
   attackCooldown: 2
   windUpTime: 0.5
   recoveryTime: 0.3
-  projectilePrefab: {fileID: 0}
+  projectilePrefab: {fileID: 219561643433229670, guid: f93ea9149fd08be48b2d656a76282f6f, type: 3}
   projectileSpeed: 12
-  damage: 5
+  damage: 50
