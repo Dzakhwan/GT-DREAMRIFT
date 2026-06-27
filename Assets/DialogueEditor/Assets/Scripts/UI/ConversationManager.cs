@@ -683,8 +683,8 @@ namespace DialogueEditor
 
         private void TurnOffUI()
         {
-            DialoguePanel.gameObject.SetActive(false);
-            OptionsPanel.gameObject.SetActive(false);
+            if (DialoguePanel != null) DialoguePanel.gameObject.SetActive(false);
+            if (OptionsPanel != null) OptionsPanel.gameObject.SetActive(false);
             SetState(eState.Off);
 #if UNITY_EDITOR
             // Debug.Log("[ConversationManager]: Conversation UI off.");
