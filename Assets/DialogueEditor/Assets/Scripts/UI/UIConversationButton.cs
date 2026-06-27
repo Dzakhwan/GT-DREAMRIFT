@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
@@ -22,9 +22,12 @@ namespace DialogueEditor
         private float m_hoverT = 0.0f;
         private eHoverState m_hoverState = eHoverState.idleOff;
         private ConversationNode m_node;
+        
+        public float BaseScale = 1.0f; // Diatur oleh ConversationManager
 
         private bool IsAnimating => (m_hoverState == eHoverState.animatingOn || m_hoverState == eHoverState.animatingOff);
-        private Vector3 BigSize => Vector3.one * 1.15f;
+        private Vector3 GetBaseSize() { return Vector3.one * BaseScale; }
+        private Vector3 GetBigSize() { return GetBaseSize() * 1.15f; }
 
         private void Awake() => m_rect = GetComponent<RectTransform>();
 
@@ -37,9 +40,9 @@ namespace DialogueEditor
                 float ease = 1 - Mathf.Pow(1 - normalised, 4);
                 
                 if (m_hoverState == eHoverState.animatingOn)
-                    m_rect.localScale = Vector3.Lerp(Vector3.one, BigSize, ease);
+                    m_rect.localScale = Vector3.Lerp(GetBaseSize(), GetBigSize(), ease);
                 else
-                    m_rect.localScale = Vector3.Lerp(BigSize, Vector3.one, ease);
+                    m_rect.localScale = Vector3.Lerp(GetBigSize(), GetBaseSize(), ease);
 
                 if (normalised >= 1)
                     m_hoverState = (m_hoverState == eHoverState.animatingOn) ? eHoverState.idleOn : eHoverState.idleOff;
@@ -96,7 +99,12 @@ namespace DialogueEditor
         {
             m_buttonType = type;
             m_node = node;
-            if (TextMesh != null && node != null) { TextMesh.text = node.Text; TextMesh.font = node.TMPFont; }
+            if (TextMesh != null && node != null) 
+            { 
+                TextMesh.text = node.Text; 
+                if (node.TMPFont != null)
+                    TextMesh.font = node.TMPFont; 
+            }
         }
     }
 }

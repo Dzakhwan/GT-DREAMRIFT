@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -39,6 +39,11 @@ namespace DialogueEditor
         public bool OptionImageSliced;
         public bool AllowMouseInteraction;
 
+        [Header("Options Styling")]
+        public bool OptionAlignLeft = true;
+        [Range(0.3f, 2f)]
+        public float OptionBaseScale = 0.85f;
+
         // Non-User facing 
         // Not exposed via custom inspector
         // 
@@ -76,6 +81,8 @@ namespace DialogueEditor
         private Conversation m_conversation;
         private SpeechNode m_currentSpeech;
         private OptionNode m_selectedOption;
+        
+        private TMPro.TMP_FontAsset m_irishFont;
 
         // Selection options
         private List<UIConversationButton> m_uiOptions;
@@ -98,6 +105,40 @@ namespace DialogueEditor
             m_uiOptions = new List<UIConversationButton>();
 
             NpcIcon.sprite = BlankSprite;
+            NpcIcon.gameObject.SetActive(false); // Hilangkan NPC icon
+
+            // Tambahkan garis putih antara nama dan npc speech dengan width 300 dan height 1
+            if (NameText != null && DialogueText != null)
+            {
+                GameObject divider = new GameObject("DividerLine");
+                divider.transform.SetParent(NameText.transform.parent, false);
+                
+                Image dividerImg = divider.AddComponent<Image>();
+                dividerImg.color = Color.white;
+                
+                RectTransform rect = divider.GetComponent<RectTransform>();
+                rect.sizeDelta = new Vector2(300, 1);
+                
+                // Menggunakan localPosition agar posisinya akurat dan tidak terpengaruh oleh perbedaan Anchor
+                Vector3 nameLocal = NameText.rectTransform.localPosition;
+                Vector3 dialogueLocal = DialogueText.rectTransform.localPosition;
+                
+                // X diset 0 agar rata tengah, Y posisinya lebih dekat ke nama (diangkat sedikit dari titik tengah)
+                float yPos = ((nameLocal.y + dialogueLocal.y) / 2f) + 15f; 
+                rect.localPosition = new Vector3(0, yPos, nameLocal.z);
+            }
+
+            // Load Irish Font
+            TMPro.TMP_FontAsset[] allFonts = Resources.FindObjectsOfTypeAll<TMPro.TMP_FontAsset>();
+            foreach (var font in allFonts)
+            {
+                if (font.name.ToLower().Contains("irish"))
+                {
+                    m_irishFont = font;
+                    break;
+                }
+            }
+
             DialogueText.text = "";
             TurnOffUI();
         }
@@ -484,6 +525,10 @@ namespace DialogueEditor
             {
                 DialogueText.font = speech.TMPFont;
             }
+            else if (m_irishFont != null)
+            {
+                DialogueText.font = m_irishFont;
+            }
             else
             {
                 DialogueText.font = null;
@@ -491,6 +536,10 @@ namespace DialogueEditor
 
             // Set name
             NameText.text = speech.Name;
+            if (m_irishFont != null)
+            {
+                NameText.font = m_irishFont;
+            }
 
             // Set text
             if (string.IsNullOrEmpty(speech.Text))
@@ -646,6 +695,7 @@ namespace DialogueEditor
         {
             DialoguePanel.gameObject.SetActive(false);
             OptionsPanel.gameObject.SetActive(false);
+
             SetState(eState.Off);
 #if UNITY_EDITOR
             // Debug.Log("[ConversationManager]: Conversation UI off.");
@@ -753,6 +803,27 @@ namespace DialogueEditor
         private UIConversationButton CreateButton()
         {
             UIConversationButton button = GameObject.Instantiate(ButtonPrefab, OptionsPanel);
+            
+            // Terapkan opsi styling dari ConversationManager
+            button.BaseScale = OptionBaseScale;
+            button.transform.localScale = Vector3.one * OptionBaseScale;
+            
+            var textMesh = button.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+            if (textMesh != null)
+            {
+                // Set Irish font for button if available
+                if (m_irishFont != null)
+                {
+                    textMesh.font = m_irishFont;
+                }
+
+                // Set rata kiri
+                if (OptionAlignLeft)
+                {
+                    textMesh.alignment = TMPro.TextAlignmentOptions.MidlineLeft;
+                }
+            }
+            
             m_uiOptions.Add(button);
             return button;
         }
