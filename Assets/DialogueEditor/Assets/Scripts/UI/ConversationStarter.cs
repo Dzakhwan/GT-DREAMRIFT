@@ -14,6 +14,9 @@ public class ConversationStarter : MonoBehaviour
     [Header("UI")]
     [SerializeField] private GameObject desktopUI;   // UI Press F
     [SerializeField] private GameObject androidUI;  // Tombol Interact Android
+    
+    [Header("UI To Hide During Conversation")]
+    [SerializeField] private List<GameObject> uiToHideDuringConversation;
 
     private Transform player;
     private bool playerInRange;
@@ -79,7 +82,28 @@ public class ConversationStarter : MonoBehaviour
     {
         if (playerInRange)
         {
+            if (uiToHideDuringConversation != null)
+            {
+                foreach (var go in uiToHideDuringConversation)
+                {
+                    if (go != null) go.SetActive(false);
+                }
+            }
+            
+            ConversationManager.OnConversationEnded += RestoreUI;
             ConversationManager.Instance.StartConversation(myConversation);
+        }
+    }
+
+    private void RestoreUI()
+    {
+        ConversationManager.OnConversationEnded -= RestoreUI;
+        if (uiToHideDuringConversation != null)
+        {
+            foreach (var go in uiToHideDuringConversation)
+            {
+                if (go != null) go.SetActive(true);
+            }
         }
     }
 
