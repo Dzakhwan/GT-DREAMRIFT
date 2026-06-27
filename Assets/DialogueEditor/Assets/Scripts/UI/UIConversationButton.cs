@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
@@ -96,7 +96,15 @@ namespace DialogueEditor
         {
             m_buttonType = type;
             m_node = node;
-            if (TextMesh != null && node != null) { TextMesh.text = node.Text; TextMesh.font = node.TMPFont; }
+            if (TextMesh != null) 
+            { 
+                if (node != null) TextMesh.text = node.Text; 
+                
+                if (node != null && node.TMPFont != null) 
+                    TextMesh.font = node.TMPFont;
+                else if (ConversationManager.Instance != null && ConversationManager.Instance.NameText != null)
+                    TextMesh.font = ConversationManager.Instance.NameText.font;
+            }
         }
     }
 }

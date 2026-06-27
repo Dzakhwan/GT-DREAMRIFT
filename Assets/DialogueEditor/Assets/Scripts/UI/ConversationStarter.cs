@@ -39,6 +39,18 @@ public class ConversationStarter : MonoBehaviour
     {
         if (player == null) return;
 
+        if (ConversationManager.Instance != null &&
+            ConversationManager.Instance.IsConversationActive)
+        {
+            if (desktopUI != null)
+                desktopUI.SetActive(false);
+
+            if (androidUI != null)
+                androidUI.SetActive(false);
+
+            return;
+        }
+
         float distance = Vector3.Distance(transform.position, player.position);
 
         // Jika player dekat NPC
@@ -77,7 +89,9 @@ public class ConversationStarter : MonoBehaviour
     // Dipanggil tombol Android
     public void StartDialogue()
     {
-        if (playerInRange)
+        if (playerInRange &&
+            ConversationManager.Instance != null &&
+            !ConversationManager.Instance.IsConversationActive)
         {
             ConversationManager.Instance.StartConversation(myConversation);
         }
