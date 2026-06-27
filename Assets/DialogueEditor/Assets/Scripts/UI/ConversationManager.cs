@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -47,8 +47,7 @@ namespace DialogueEditor
         public RectTransform OptionsPanel;
         // Dialogue UI
         public Image DialogueBackground;
-        //public Image NpcIcon;
-        public Image SeparatorLine;
+        public Image NpcIcon;
         public TMPro.TextMeshProUGUI NameText;
         public TMPro.TextMeshProUGUI DialogueText;
         // Components
@@ -98,42 +97,8 @@ namespace DialogueEditor
 
             m_uiOptions = new List<UIConversationButton>();
 
-            //NpcIcon.sprite = BlankSprite;
-            if (DialogueText != null) DialogueText.text = "";
-
-            // Auto-generate SeparatorLine if the user hasn't assigned it
-            if (SeparatorLine == null && DialoguePanel != null)
-            {
-                Image[] imgs = DialoguePanel.GetComponentsInChildren<Image>(true);
-                foreach (Image img in imgs) {
-                    if (img.gameObject.name.ToLower().Contains("separator")) {
-                        SeparatorLine = img;
-                        break;
-                    }
-                }
-
-                if (SeparatorLine == null)
-                {
-                    GameObject lineObj = new GameObject("SeparatorLine", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                    lineObj.transform.SetParent(DialoguePanel, false);
-                    SeparatorLine = lineObj.GetComponent<Image>();
-                    SeparatorLine.color = new Color(1, 1, 1, 0); // Start invisible
-
-                    RectTransform rt = lineObj.GetComponent<RectTransform>();
-                    // Anchor to the exact center
-                    rt.anchorMin = new Vector2(0.5f, 0.5f);
-                    rt.anchorMax = new Vector2(0.5f, 0.5f);
-                    rt.pivot = new Vector2(0.5f, 0.5f);
-                    
-                    float startY = 15; // fallback
-                    if (NameText != null) {
-                        startY = NameText.rectTransform.anchoredPosition.y - (NameText.rectTransform.rect.height / 2) - 8;
-                    }
-                    rt.anchoredPosition = new Vector2(0, startY);
-                    rt.sizeDelta = new Vector2(300, 1.2f); // Explicit width and height
-                }
-            }
-
+            NpcIcon.sprite = BlankSprite;
+            DialogueText.text = "";
             TurnOffUI();
         }
 
@@ -306,9 +271,8 @@ namespace DialogueEditor
                     break;
                 case eState.TransitioningDialogueBoxOn:
                     SetColorAlpha(DialogueBackground, 1);
-                    //SetColorAlpha(NpcIcon, 1);
+                    SetColorAlpha(NpcIcon, 1);
                     SetColorAlpha(NameText, 1);
-                    SetColorAlpha(SeparatorLine, 1);
                     break;
             }
 
@@ -321,13 +285,12 @@ namespace DialogueEditor
                 case eState.TransitioningDialogueBoxOn:
                     {
                         SetColorAlpha(DialogueBackground, 0);
-                        //SetColorAlpha(NpcIcon, 0);
+                        SetColorAlpha(NpcIcon, 0);
                         SetColorAlpha(NameText, 0);
-                        SetColorAlpha(SeparatorLine, 0);
 
                         DialogueText.text = "";
                         NameText.text = m_currentSpeech.Name;
-                        //NpcIcon.sprite = m_currentSpeech.Icon != null ? m_currentSpeech.Icon : BlankSprite;
+                        NpcIcon.sprite = m_currentSpeech.Icon != null ? m_currentSpeech.Icon : BlankSprite;
                     }
                     break;
 
@@ -371,9 +334,8 @@ namespace DialogueEditor
             }
 
             SetColorAlpha(DialogueBackground, t);
-            //SetColorAlpha(NpcIcon, t);
+            SetColorAlpha(NpcIcon, t);
             SetColorAlpha(NameText, t);
-            SetColorAlpha(SeparatorLine, t);
         }
 
         private void ScrollingText_Update()
@@ -482,9 +444,8 @@ namespace DialogueEditor
             }
 
             SetColorAlpha(DialogueBackground, 1 - t);
-            //SetColorAlpha(NpcIcon, 1 - t);
+            SetColorAlpha(NpcIcon, 1 - t);
             SetColorAlpha(NameText, 1 - t);
-            SetColorAlpha(SeparatorLine, 1 - t);
         }
 
 
@@ -509,23 +470,23 @@ namespace DialogueEditor
             m_currentSelectedIndex = 0;
 
             // Set sprite
-            //if (speech.Icon == null)
-            //{
-            //    NpcIcon.sprite = BlankSprite;
-            //}
-            //else
-            //{
-            //    NpcIcon.sprite = speech.Icon;
-            //}
+            if (speech.Icon == null)
+            {
+                NpcIcon.sprite = BlankSprite;
+            }
+            else
+            {
+                NpcIcon.sprite = speech.Icon;
+            }
 
             // Set font
             if (speech.TMPFont != null)
             {
                 DialogueText.font = speech.TMPFont;
             }
-            else if (NameText != null && NameText.font != null)
+            else
             {
-                DialogueText.font = NameText.font;
+                DialogueText.font = null;
             }
 
             // Set name
@@ -665,10 +626,10 @@ namespace DialogueEditor
 
         private void TurnOnUI()
         {
-            if (DialoguePanel != null) DialoguePanel.gameObject.SetActive(true);
-            if (OptionsPanel != null) OptionsPanel.gameObject.SetActive(true);
+            DialoguePanel.gameObject.SetActive(true);
+            OptionsPanel.gameObject.SetActive(true);
 
-            if (BackgroundImage != null && DialogueBackground != null)
+            if (BackgroundImage != null)
             {
                 DialogueBackground.sprite = BackgroundImage;
 
@@ -678,13 +639,13 @@ namespace DialogueEditor
                     DialogueBackground.type = Image.Type.Simple;
             }
 
-            //if (NpcIcon != null) NpcIcon.sprite = BlankSprite;
+            NpcIcon.sprite = BlankSprite;
         }
 
         private void TurnOffUI()
         {
-            if (DialoguePanel != null) DialoguePanel.gameObject.SetActive(false);
-            if (OptionsPanel != null) OptionsPanel.gameObject.SetActive(false);
+            DialoguePanel.gameObject.SetActive(false);
+            OptionsPanel.gameObject.SetActive(false);
             SetState(eState.Off);
 #if UNITY_EDITOR
             // Debug.Log("[ConversationManager]: Conversation UI off.");
@@ -761,7 +722,6 @@ namespace DialogueEditor
 
         private void SetColorAlpha(MaskableGraphic graphic, float a)
         {
-            if (graphic == null) return;
             Color col = graphic.color;
             col.a = a;
             graphic.color = col;
