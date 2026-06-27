@@ -17,9 +17,9 @@ public class UIConversationButton : MonoBehaviour, IPointerEnterHandler, IPointe
     [SerializeField] private GameObject settingsPanel;
     [SerializeField] private GameObject creditsPanel;
 
-    [Header("UI Elements")]
-    [SerializeField] private TMPro.TextMeshProUGUI TextMesh = null;
-    [SerializeField] private Image OptionBackgroundImage = null;
+    // [Header("UI Elements")]
+    // [SerializeField] private TMPro.TextMeshProUGUI TextMesh = null;
+    // [SerializeField] private Image OptionBackgroundImage = null;
     
     private RectTransform m_rect;
     private float m_hoverT = 0.0f;
