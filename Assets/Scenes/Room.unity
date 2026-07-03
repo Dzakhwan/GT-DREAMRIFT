@@ -1521,6 +1521,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Telescope
       objectReference: {fileID: 0}
+    - target: {fileID: 100000, guid: 1322354ca00f74f31974714339b5d7c6, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: 1322354ca00f74f31974714339b5d7c6, type: 3}
       propertyPath: m_RootOrder
       value: 1
