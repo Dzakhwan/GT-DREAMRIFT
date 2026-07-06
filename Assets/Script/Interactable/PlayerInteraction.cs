@@ -4,7 +4,8 @@ using TMPro;
 
 /// <summary>
 /// Pasang script ini ke GameObject Player.
-/// Script ini mendeteksi objek InteractableObject terdekat dan menampilkan
+/// Script ini mendeteksi semua objek yang mengimplementasikan IInteractable
+/// (termasuk InteractableObject, CutsceneTrigger, dll.) dan menampilkan
 /// tombol Interact di layar saat Player berada dalam jangkauan.
 /// </summary>
 public class PlayerInteraction : MonoBehaviour
@@ -26,8 +27,10 @@ public class PlayerInteraction : MonoBehaviour
     [Tooltip("Drag & Drop komponen Button dari tombol interaksi")]
     [SerializeField] private Button interactButton;
 
-    // Referensi ke objek interaktif yang saat ini paling dekat
-    private InteractableObject currentTarget;
+    // Referensi ke objek interaktif (interface) yang saat ini paling dekat
+    private IInteractable currentTarget;
+    // Referensi ke MonoBehaviour dari currentTarget (untuk ambil transform/range)
+    private MonoBehaviour currentTargetMB;
 
     private void Start()
     {
@@ -46,29 +49,37 @@ public class PlayerInteraction : MonoBehaviour
     }
 
     /// <summary>
-    /// Setiap frame, cari objek InteractableObject terdekat dalam radius deteksi.
+    /// Setiap frame, cari objek IInteractable terdekat dalam radius deteksi.
+    /// Mendukung semua implementasi IInteractable: InteractableObject, CutsceneTrigger, dll.
     /// </summary>
     private void DetectNearbyInteractable()
     {
         // Cari semua collider dalam radius dan layer yang ditentukan
         Collider[] hits = Physics.OverlapSphere(transform.position, detectionRadius, interactableLayer);
 
-        InteractableObject closest = null;
+        IInteractable closest = null;
+        MonoBehaviour closestMB = null;
         float closestDistance = Mathf.Infinity;
 
         foreach (Collider hit in hits)
         {
-            // Cek apakah collider punya komponen InteractableObject
-            InteractableObject interactable = hit.GetComponent<InteractableObject>();
+            // Cek apakah collider punya komponen yang mengimplementasikan IInteractable
+            IInteractable interactable = hit.GetComponent<IInteractable>();
             if (interactable == null) continue;
+
+            // Ambil MonoBehaviour untuk mendapatkan InteractRange dan transform
+            MonoBehaviour mb = hit.GetComponent<MonoBehaviour>();
+            if (mb == null) continue;
 
             float dist = Vector3.Distance(transform.position, hit.transform.position);
 
-            // Simpan yang paling dekat dan masih dalam jangkauan objek itu
-            if (dist < closestDistance && dist <= interactable.InteractRange)
+            // Cek jangkauan menggunakan InteractRange dari masing-masing implementasi
+            float range = GetInteractRange(mb);
+            if (dist < closestDistance && dist <= range)
             {
                 closestDistance = dist;
                 closest = interactable;
+                closestMB = mb;
             }
         }
 
@@ -76,8 +87,21 @@ public class PlayerInteraction : MonoBehaviour
         if (closest != currentTarget)
         {
             currentTarget = closest;
+            currentTargetMB = closestMB;
             UpdateInteractButton();
         }
+    }
+
+    /// <summary>
+    /// Ambil nilai InteractRange dari MonoBehaviour yang mengimplementasikan IInteractable.
+    /// Mendukung InteractableObject dan CutsceneTrigger secara polymorphic.
+    /// </summary>
+    private float GetInteractRange(MonoBehaviour mb)
+    {
+        if (mb is InteractableObject io) return io.InteractRange;
+        if (mb is CutsceneTrigger ct) return ct.InteractRange;
+        // Fallback: gunakan detectionRadius
+        return detectionRadius;
     }
 
     /// <summary>
