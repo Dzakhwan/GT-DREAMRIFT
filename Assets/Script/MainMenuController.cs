@@ -13,6 +13,12 @@ public class MainMenuController : MonoBehaviour
     // Slot untuk Drag & Drop Panel Credits (Tarik GameObject 'Credits Panel' ke sini di Inspector)
     public GameObject creditsPanel;
 
+    [Header("Main Menu Blocking")]
+    // Slot untuk Drag & Drop CanvasGroup yang ada di GameObject 'Main Menu'
+    // (container yang isinya tombol NewGame, Settings, Exit)
+    // Dipakai supaya tombol di belakang tidak bisa diklik selagi ada panel yang terbuka
+    public CanvasGroup mainMenuGroup;
+
     // Fungsi ini dipanggil saat tombol NEW GAME diklik
     public void PlayGame()
     {
@@ -38,6 +44,8 @@ public class MainMenuController : MonoBehaviour
         {
             Debug.LogError("SettingsPanel belum di-assign di Inspector!");
         }
+
+        SetMainMenuInteractable(false);
     }
 
     // Fungsi ini dipanggil saat tombol X di panel Settings diklik
@@ -47,6 +55,8 @@ public class MainMenuController : MonoBehaviour
         {
             settingsPanel.SetActive(false);
         }
+
+        SetMainMenuInteractable(true);
     }
 
     // Fungsi ini dipanggil saat tombol CREDITS diklik (dari dalam panel Settings)
@@ -66,6 +76,9 @@ public class MainMenuController : MonoBehaviour
         {
             Debug.LogError("CreditsPanel belum di-assign di Inspector!");
         }
+
+        // Main Menu tetap ke-block, karena masih ada panel (Credits) yang terbuka
+        SetMainMenuInteractable(false);
     }
 
     // Fungsi ini dipanggil saat tombol close di panel Credits diklik
@@ -81,6 +94,9 @@ public class MainMenuController : MonoBehaviour
         {
             settingsPanel.SetActive(true);
         }
+
+        // Main Menu tetap ke-block, karena Settings masih terbuka
+        SetMainMenuInteractable(false);
     }
 
     // Fungsi ini dipanggil saat tombol EXIT GAME diklik
@@ -93,5 +109,19 @@ public class MainMenuController : MonoBehaviour
         // Supaya bisa ditest langsung di Unity Editor (Application.Quit tidak jalan di Editor)
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
+    }
+
+    // Mengatur apakah tombol-tombol di Main Menu (New Game, Settings, Exit) bisa diklik atau tidak
+    private void SetMainMenuInteractable(bool isInteractable)
+    {
+        if (mainMenuGroup != null)
+        {
+            mainMenuGroup.interactable = isInteractable;
+            mainMenuGroup.blocksRaycasts = isInteractable;
+        }
+        else
+        {
+            Debug.LogWarning("MainMenuGroup belum di-assign, tombol belakang panel masih bisa diklik!");
+        }
     }
 }

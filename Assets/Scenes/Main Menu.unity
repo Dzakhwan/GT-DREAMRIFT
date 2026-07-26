@@ -323,6 +323,7 @@ GameObject:
   - component: {fileID: 165501864}
   - component: {fileID: 165501863}
   - component: {fileID: 165501862}
+  - component: {fileID: 165501865}
   m_Layer: 0
   m_Name: Exit
   m_TagString: Untagged
@@ -444,6 +445,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 165501860}
   m_CullTransparentMesh: 1
+--- !u!114 &165501865
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 165501860}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7f0d35603c424945a0f5d5f0df0676c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonHoverEffect
+  targetGraphic: {fileID: 0}
+  hoverColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  hoverScale: 1.1
+  transitionSpeed: 8
 --- !u!1 &244959608
 GameObject:
   m_ObjectHideFlags: 0
@@ -590,7 +607,7 @@ MonoBehaviour:
       - m_Target: {fileID: 1469826871}
         m_TargetAssemblyTypeName: AudioSettingsController, Assembly-CSharp
         m_MethodName: OnVolumeChanged
-        m_Mode: 4
+        m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -787,6 +804,7 @@ GameObject:
   - component: {fileID: 491378142}
   - component: {fileID: 491378141}
   - component: {fileID: 491378140}
+  - component: {fileID: 491378143}
   m_Layer: 5
   m_Name: Speaker
   m_TagString: Untagged
@@ -896,6 +914,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 491378138}
   m_CullTransparentMesh: 1
+--- !u!114 &491378143
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 491378138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7f0d35603c424945a0f5d5f0df0676c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonHoverEffect
+  targetGraphic: {fileID: 0}
+  hoverColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  hoverScale: 1.1
+  transitionSpeed: 8
 --- !u!1 &507848822
 GameObject:
   m_ObjectHideFlags: 0
@@ -1046,6 +1080,7 @@ GameObject:
   - component: {fileID: 547986278}
   - component: {fileID: 547986277}
   - component: {fileID: 547986276}
+  - component: {fileID: 547986280}
   m_Layer: 5
   m_Name: NewGame
   m_TagString: Untagged
@@ -1184,6 +1219,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 547986274}
   m_CullTransparentMesh: 1
+--- !u!114 &547986280
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 547986274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7f0d35603c424945a0f5d5f0df0676c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonHoverEffect
+  targetGraphic: {fileID: 0}
+  hoverColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  hoverScale: 1.1
+  transitionSpeed: 8
 --- !u!1 &556177664
 GameObject:
   m_ObjectHideFlags: 0
@@ -1374,6 +1425,7 @@ GameObject:
   - component: {fileID: 647569057}
   - component: {fileID: 647569056}
   - component: {fileID: 647569055}
+  - component: {fileID: 647569058}
   m_Layer: 5
   m_Name: Credits
   m_TagString: Untagged
@@ -1495,6 +1547,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 647569053}
   m_CullTransparentMesh: 1
+--- !u!114 &647569058
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 647569053}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7f0d35603c424945a0f5d5f0df0676c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonHoverEffect
+  targetGraphic: {fileID: 0}
+  hoverColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  hoverScale: 1.1
+  transitionSpeed: 8
 --- !u!1 &653400369
 GameObject:
   m_ObjectHideFlags: 0
@@ -2072,6 +2140,7 @@ GameObject:
   - component: {fileID: 1037956674}
   - component: {fileID: 1037956673}
   - component: {fileID: 1037956672}
+  - component: {fileID: 1037956675}
   m_Layer: 5
   m_Name: x (1)
   m_TagString: Untagged
@@ -2193,6 +2262,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1037956670}
   m_CullTransparentMesh: 1
+--- !u!114 &1037956675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1037956670}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7f0d35603c424945a0f5d5f0df0676c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonHoverEffect
+  targetGraphic: {fileID: 0}
+  hoverColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  hoverScale: 1.1
+  transitionSpeed: 8
 --- !u!1 &1039022393
 GameObject:
   m_ObjectHideFlags: 0
@@ -2474,6 +2559,7 @@ GameObject:
   - component: {fileID: 1178626650}
   - component: {fileID: 1178626649}
   - component: {fileID: 1178626648}
+  - component: {fileID: 1178626651}
   m_Layer: 0
   m_Name: Settings
   m_TagString: Untagged
@@ -2595,6 +2681,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1178626646}
   m_CullTransparentMesh: 1
+--- !u!114 &1178626651
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1178626646}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7f0d35603c424945a0f5d5f0df0676c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonHoverEffect
+  targetGraphic: {fileID: 0}
+  hoverColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  hoverScale: 1.1
+  transitionSpeed: 8
 --- !u!1 &1200932149
 GameObject:
   m_ObjectHideFlags: 0
@@ -2607,6 +2709,7 @@ GameObject:
   - component: {fileID: 1200932153}
   - component: {fileID: 1200932152}
   - component: {fileID: 1200932151}
+  - component: {fileID: 1200932154}
   m_Layer: 5
   m_Name: x
   m_TagString: Untagged
@@ -2728,6 +2831,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1200932149}
   m_CullTransparentMesh: 1
+--- !u!114 &1200932154
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1200932149}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7f0d35603c424945a0f5d5f0df0676c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonHoverEffect
+  targetGraphic: {fileID: 0}
+  hoverColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  hoverScale: 1.1
+  transitionSpeed: 8
 --- !u!1 &1215403652
 GameObject:
   m_ObjectHideFlags: 0
@@ -3387,7 +3506,7 @@ MonoBehaviour:
       - m_Target: {fileID: 1469826871}
         m_TargetAssemblyTypeName: AudioSettingsController, Assembly-CSharp
         m_MethodName: OnBrightnessChanged
-        m_Mode: 4
+        m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
