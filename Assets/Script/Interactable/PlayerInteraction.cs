@@ -107,10 +107,10 @@ public class PlayerInteraction : MonoBehaviour
 
         foreach (Collider hit in hits)
         {
-            IInteractable interactable = hit.GetComponent<IInteractable>();
+            IInteractable interactable = hit.GetComponentInParent<IInteractable>();
             if (interactable == null) continue;
 
-            MonoBehaviour mb = hit.GetComponent<MonoBehaviour>();
+            MonoBehaviour mb = hit.GetComponentInParent<MonoBehaviour>();
             if (mb == null) continue;
 
             float dist = Vector3.Distance(transform.position, hit.transform.position);
@@ -146,8 +146,8 @@ public class PlayerInteraction : MonoBehaviour
 
         if (hitSomething && hit.collider != null)
         {
-            IInteractable interactable = hit.collider.GetComponent<IInteractable>();
-            MonoBehaviour mb = hit.collider.GetComponent<MonoBehaviour>();
+            IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
+            MonoBehaviour mb = hit.collider.GetComponentInParent<MonoBehaviour>();
             if (interactable != null && mb != null)
             {
                 float dist = Vector3.Distance(transform.position, hit.collider.transform.position);
@@ -171,8 +171,8 @@ public class PlayerInteraction : MonoBehaviour
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit, 100f, interactableLayer))
         {
-            IInteractable interactable = hit.collider.GetComponent<IInteractable>();
-            MonoBehaviour mb = hit.collider.GetComponent<MonoBehaviour>();
+            IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
+            MonoBehaviour mb = hit.collider.GetComponentInParent<MonoBehaviour>();
             if (interactable != null && mb != null)
             {
                 float dist = Vector3.Distance(transform.position, hit.collider.transform.position);
@@ -195,6 +195,8 @@ public class PlayerInteraction : MonoBehaviour
         if (mb is InteractableObject io) return io.InteractRange;
         if (mb is CutsceneTrigger ct) return ct.InteractRange;
         if (mb is Dreamrift.QuestSystem.QuestTrigger qt) return qt.InteractRange;
+        if (mb is ConversationStarter cs) return cs.InteractionRadius;
+        if (mb is Dreamrift.InventorySystem.ItemPickup ip) return ip.InteractRange;
         // Fallback: gunakan detectionRadius
         return detectionRadius;
     }
