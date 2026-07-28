@@ -4,12 +4,22 @@ using UnityEngine.Events;
 namespace Dreamrift.InventorySystem
 {
     [RequireComponent(typeof(Collider))]
-    public sealed class ItemPickup : MonoBehaviour
+    public sealed class ItemPickup : MonoBehaviour, IInteractable
     {
         [Header("Pickup")]
         [SerializeField] private ItemData item;
         [SerializeField, Min(1)] private int quantity = 1;
         [SerializeField] private bool destroyWhenPickedUp = true;
+
+        [Header("Interaction (IInteractable)")]
+        [Tooltip("Jika true, pemain harus menekan tombol interaksi UI untuk memungut barang. Jika false, barang otomatis terambil saat collider diinjak.")]
+        [SerializeField] private bool pickupViaInteractButton = true;
+
+        [Tooltip("Teks tombol UI yang muncul di layar saat dekat item ini")]
+        [SerializeField] private string interactLabel = "Ambil Item";
+
+        [Tooltip("Jarak maksimal pemain dari item untuk memunculkan tombol interaksi")]
+        [SerializeField] private float interactRange = 2.5f;
 
         [Header("Filtering")]
         [SerializeField] private bool requirePlayerTag = true;
@@ -21,6 +31,19 @@ namespace Dreamrift.InventorySystem
         [SerializeField] private UnityEvent onInventoryFull;
 
         private bool pickupConsumed;
+
+        public string InteractLabel
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(interactLabel))
+                    return interactLabel;
+
+                return item != null ? $"Ambil {item.DisplayName}" : "Ambil Item";
+            }
+        }
+
+        public float InteractRange => interactRange;
 
         private void Reset()
         {
@@ -35,12 +58,29 @@ namespace Dreamrift.InventorySystem
 
         private void OnTriggerEnter(Collider other)
         {
+            if (pickupViaInteractButton)
+            {
+                // Jika diatur lewat tombol interaksi, jangan ambil secara otomatis
+                return;
+            }
+
             if (!CanPickupFrom(other))
             {
                 return;
             }
 
             TryPickup();
+        }
+
+        /// <summary>
+        /// Implementasi IInteractable. Dipanggil saat tombol interaksi di layar ditekan.
+        /// </summary>
+        public void OnInteract()
+        {
+            if (pickupViaInteractButton)
+            {
+                TryPickup();
+            }
         }
 
         public void TryPickup()
