@@ -28,6 +28,8 @@ namespace Dreamrift.QuestSystem
         [SerializeField] private bool interactable = true;
         [Tooltip("Teks yang tampil di tombol interaksi")]
         [SerializeField] private string interactLabel = "Ambil Quest";
+        [Tooltip("Jarak maksimal player agar tombol interaksi muncul (dalam unit Unity)")]
+        [SerializeField] private float interactRange = 2.5f;
         [Tooltip("Hanya bisa dipicu sekali")]
         [SerializeField] private bool oneTimeOnly = true;
 
@@ -43,6 +45,7 @@ namespace Dreamrift.QuestSystem
 
         // ── IInteractable Implementation ───────────────────────────────────────
         public string InteractLabel => interactLabel;
+        public float InteractRange => interactRange;
 
         public void OnInteract()
         {

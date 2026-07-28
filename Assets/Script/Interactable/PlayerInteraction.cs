@@ -100,6 +100,7 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (mb is InteractableObject io) return io.InteractRange;
         if (mb is CutsceneTrigger ct) return ct.InteractRange;
+        if (mb is Dreamrift.QuestSystem.QuestTrigger qt) return qt.InteractRange;
         // Fallback: gunakan detectionRadius
         return detectionRadius;
     }
