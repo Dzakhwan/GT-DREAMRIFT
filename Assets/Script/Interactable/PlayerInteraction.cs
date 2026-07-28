@@ -3,10 +3,20 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
+/// Mode deteksi untuk menemukan objek interaktif di sekitar Player.
+/// </summary>
+public enum InteractionDetectionMode
+{
+    OverlapSphere = 0,
+    RaycastPlayerForward = 1,
+    RaycastMouseCursor = 2
+}
+
+/// <summary>
 /// Pasang script ini ke GameObject Player.
 /// Script ini mendeteksi semua objek yang mengimplementasikan IInteractable
-/// (termasuk InteractableObject, CutsceneTrigger, dll.) dan menampilkan
-/// tombol Interact di layar saat Player berada dalam jangkauan.
+/// (termasuk InteractableObject, CutsceneTrigger, QuestTrigger, dll.) dan menampilkan
+/// tombol Interact di layar saat Player berada dalam jangkauan dan/atau menghadap objek.
 /// </summary>
 public class PlayerInteraction : MonoBehaviour
 {
@@ -14,8 +24,17 @@ public class PlayerInteraction : MonoBehaviour
     [Tooltip("Layer yang dipakai untuk mendeteksi objek interaktif")]
     [SerializeField] private LayerMask interactableLayer;
 
-    [Tooltip("Radius pencarian objek interaktif di sekitar Player")]
+    [Tooltip("Radius pencarian objek interaktif di sekitar Player (atau jarak maksimal untuk Raycast)")]
     [SerializeField] private float detectionRadius = 3f;
+
+    [Tooltip("Mode deteksi objek interaktif. Untuk game Isometric 3D dengan WASD/Joystick, disarankan RaycastPlayerForward.")]
+    [SerializeField] private InteractionDetectionMode detectionMode = InteractionDetectionMode.RaycastPlayerForward;
+
+    [Tooltip("Ketebalan sinar Raycast (0 = garis tipis, > 0 = SphereCast agar lebih mudah diposisikan)")]
+    [SerializeField] private float raycastThickness = 0.5f;
+
+    [Tooltip("Tinggi asal sinar dari posisi kaki Player (default 1.0 = tinggi dada)")]
+    [SerializeField] private float raycastHeightOffset = 1.0f;
 
     [Header("UI References")]
     [Tooltip("Drag & Drop panel/GameObject tombol interaksi dari Hierarchy")]
@@ -27,7 +46,7 @@ public class PlayerInteraction : MonoBehaviour
     [Tooltip("Drag & Drop komponen Button dari tombol interaksi")]
     [SerializeField] private Button interactButton;
 
-    // Referensi ke objek interaktif (interface) yang saat ini paling dekat
+    // Referensi ke objek interaktif (interface) yang saat ini paling dekat/terpilih
     private IInteractable currentTarget;
     // Referensi ke MonoBehaviour dari currentTarget (untuk ambil transform/range)
     private MonoBehaviour currentTargetMB;
@@ -49,38 +68,25 @@ public class PlayerInteraction : MonoBehaviour
     }
 
     /// <summary>
-    /// Setiap frame, cari objek IInteractable terdekat dalam radius deteksi.
-    /// Mendukung semua implementasi IInteractable: InteractableObject, CutsceneTrigger, dll.
+    /// Setiap frame, cari objek IInteractable menggunakan mode deteksi yang dipilih.
+    /// Mendukung semua implementasi IInteractable: InteractableObject, CutsceneTrigger, QuestTrigger, dll.
     /// </summary>
     private void DetectNearbyInteractable()
     {
-        // Cari semua collider dalam radius dan layer yang ditentukan
-        Collider[] hits = Physics.OverlapSphere(transform.position, detectionRadius, interactableLayer);
-
         IInteractable closest = null;
         MonoBehaviour closestMB = null;
-        float closestDistance = Mathf.Infinity;
 
-        foreach (Collider hit in hits)
+        switch (detectionMode)
         {
-            // Cek apakah collider punya komponen yang mengimplementasikan IInteractable
-            IInteractable interactable = hit.GetComponent<IInteractable>();
-            if (interactable == null) continue;
-
-            // Ambil MonoBehaviour untuk mendapatkan InteractRange dan transform
-            MonoBehaviour mb = hit.GetComponent<MonoBehaviour>();
-            if (mb == null) continue;
-
-            float dist = Vector3.Distance(transform.position, hit.transform.position);
-
-            // Cek jangkauan menggunakan InteractRange dari masing-masing implementasi
-            float range = GetInteractRange(mb);
-            if (dist < closestDistance && dist <= range)
-            {
-                closestDistance = dist;
-                closest = interactable;
-                closestMB = mb;
-            }
+            case InteractionDetectionMode.OverlapSphere:
+                DetectByOverlapSphere(out closest, out closestMB);
+                break;
+            case InteractionDetectionMode.RaycastPlayerForward:
+                DetectByRaycastForward(out closest, out closestMB);
+                break;
+            case InteractionDetectionMode.RaycastMouseCursor:
+                DetectByRaycastMouseCursor(out closest, out closestMB);
+                break;
         }
 
         // Update tombol berdasarkan hasil pencarian
@@ -92,9 +98,97 @@ public class PlayerInteraction : MonoBehaviour
         }
     }
 
+    private void DetectByOverlapSphere(out IInteractable closest, out MonoBehaviour closestMB)
+    {
+        Collider[] hits = Physics.OverlapSphere(transform.position, detectionRadius, interactableLayer);
+        closest = null;
+        closestMB = null;
+        float closestDistance = Mathf.Infinity;
+
+        foreach (Collider hit in hits)
+        {
+            IInteractable interactable = hit.GetComponent<IInteractable>();
+            if (interactable == null) continue;
+
+            MonoBehaviour mb = hit.GetComponent<MonoBehaviour>();
+            if (mb == null) continue;
+
+            float dist = Vector3.Distance(transform.position, hit.transform.position);
+            float range = GetInteractRange(mb);
+            if (dist < closestDistance && dist <= range)
+            {
+                closestDistance = dist;
+                closest = interactable;
+                closestMB = mb;
+            }
+        }
+    }
+
+    private void DetectByRaycastForward(out IInteractable closest, out MonoBehaviour closestMB)
+    {
+        closest = null;
+        closestMB = null;
+
+        Vector3 origin = transform.position + Vector3.up * raycastHeightOffset;
+        Vector3 direction = transform.forward;
+
+        bool hitSomething;
+        RaycastHit hit;
+
+        if (raycastThickness > 0f)
+        {
+            hitSomething = Physics.SphereCast(origin, raycastThickness, direction, out hit, detectionRadius, interactableLayer);
+        }
+        else
+        {
+            hitSomething = Physics.Raycast(origin, direction, out hit, detectionRadius, interactableLayer);
+        }
+
+        if (hitSomething && hit.collider != null)
+        {
+            IInteractable interactable = hit.collider.GetComponent<IInteractable>();
+            MonoBehaviour mb = hit.collider.GetComponent<MonoBehaviour>();
+            if (interactable != null && mb != null)
+            {
+                float dist = Vector3.Distance(transform.position, hit.collider.transform.position);
+                float range = GetInteractRange(mb);
+                if (dist <= range)
+                {
+                    closest = interactable;
+                    closestMB = mb;
+                }
+            }
+        }
+    }
+
+    private void DetectByRaycastMouseCursor(out IInteractable closest, out MonoBehaviour closestMB)
+    {
+        closest = null;
+        closestMB = null;
+
+        if (Camera.main == null) return;
+
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out RaycastHit hit, 100f, interactableLayer))
+        {
+            IInteractable interactable = hit.collider.GetComponent<IInteractable>();
+            MonoBehaviour mb = hit.collider.GetComponent<MonoBehaviour>();
+            if (interactable != null && mb != null)
+            {
+                float dist = Vector3.Distance(transform.position, hit.collider.transform.position);
+                float range = GetInteractRange(mb);
+                if (dist <= range)
+                {
+                    closest = interactable;
+                    closestMB = mb;
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// Ambil nilai InteractRange dari MonoBehaviour yang mengimplementasikan IInteractable.
-    /// Mendukung InteractableObject dan CutsceneTrigger secara polymorphic.
+    /// Mendukung InteractableObject, CutsceneTrigger, dan QuestTrigger secara polymorphic.
     /// </summary>
     private float GetInteractRange(MonoBehaviour mb)
     {
@@ -137,11 +231,27 @@ public class PlayerInteraction : MonoBehaviour
     }
 
     /// <summary>
-    /// Visualisasi radius deteksi di Scene View (hanya di Editor)
+    /// Visualisasi jangkauan dan arah deteksi di Scene View (hanya di Editor)
     /// </summary>
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
+
+        if (detectionMode == InteractionDetectionMode.OverlapSphere)
+        {
+            Gizmos.DrawWireSphere(transform.position, detectionRadius);
+        }
+        else if (detectionMode == InteractionDetectionMode.RaycastPlayerForward)
+        {
+            Vector3 origin = transform.position + Vector3.up * raycastHeightOffset;
+            Vector3 end = origin + transform.forward * detectionRadius;
+
+            Gizmos.DrawLine(origin, end);
+            if (raycastThickness > 0f)
+            {
+                Gizmos.DrawWireSphere(origin, raycastThickness);
+                Gizmos.DrawWireSphere(end, raycastThickness);
+            }
+        }
     }
 }
