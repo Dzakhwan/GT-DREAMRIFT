@@ -1125,6 +1125,7 @@ MonoBehaviour:
     m_SceneName: CutScene1
   settingsPanel: {fileID: 0}
   creditsPanel: {fileID: 0}
+  mainMenuGroup: {fileID: 0}
 --- !u!114 &547986277
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3109,12 +3110,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AudioSettingsController
   volumeSlider: {fileID: 286567672}
   brightnessSlider: {fileID: 1673513044}
-  audioMixer: {fileID: 0}
-  exposedVolumeParam: MasterVolume
-  musicSource: {fileID: 0}
-  directionalLight: {fileID: 1640260473}
-  minLightIntensity: 0.1
-  maxLightIntensity: 2
   brightnessOverlay: {fileID: 1735073783}
 --- !u!114 &1469826872
 MonoBehaviour:
@@ -3885,6 +3880,7 @@ GameObject:
   - component: {fileID: 1904364887}
   - component: {fileID: 1904364886}
   - component: {fileID: 1904364885}
+  - component: {fileID: 1904364889}
   m_Layer: 5
   m_Name: Main Menu
   m_TagString: Untagged
@@ -3909,6 +3905,7 @@ MonoBehaviour:
     m_SceneName: CutScene1
   settingsPanel: {fileID: 1469826870}
   creditsPanel: {fileID: 154232502}
+  mainMenuGroup: {fileID: 1904364889}
 --- !u!114 &1904364886
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3964,6 +3961,7 @@ RectTransform:
   - {fileID: 547986275}
   - {fileID: 1178626647}
   - {fileID: 165501861}
+  - {fileID: 1910772552}
   m_Father: {fileID: 1907373878}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -3971,6 +3969,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!225 &1904364889
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1904364884}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1905657111
 GameObject:
   m_ObjectHideFlags: 0
@@ -4151,6 +4161,60 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!1 &1910772551
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1910772552}
+  - component: {fileID: 1910772553}
+  m_Layer: 5
+  m_Name: GameSettingsManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1910772552
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1910772551}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1904364888}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1910772553
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1910772551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5846956b7674fed47b752b13390d7de8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameSettingsManager
+  audioMixer: {fileID: 0}
+  exposedVolumeParam: MasterVolume
+  musicSource: {fileID: 0}
+  minLightIntensity: 0.5
+  maxLightIntensity: 2
+  minBrightnessFloor: 0.2
 --- !u!1 &1913263712
 GameObject:
   m_ObjectHideFlags: 0
