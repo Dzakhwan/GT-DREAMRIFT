@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 using System.Reflection;
 
 public class FogSwitcher : MonoBehaviour
@@ -10,35 +11,58 @@ public class FogSwitcher : MonoBehaviour
     [SerializeField] private ScriptableObject fogSettings;
 
     private Material _fogMaterial;
+    private Shader _fogShader;
+
+    private LocalKeyword _kwDistance;
+    private LocalKeyword _kwHeight;
+    private bool _keywordsReady;
 
     private void Start()
     {
-        if (fogSettings != null)
+        if (fogSettings == null)
         {
-            var field = fogSettings.GetType().GetField("effectMaterial",
-                BindingFlags.Public | BindingFlags.Instance);
+            Debug.LogError("FogSwitcher: FogSettings belum di-assign! Drag Valley-FogSettings.asset ke slot.");
+            return;
+        }
 
-            if (field != null)
-            {
-                _fogMaterial = field.GetValue(fogSettings) as Material;
-            }
+        // Ambil effectMaterial dari FogSettings via reflection
+        var field = fogSettings.GetType().GetField("effectMaterial",
+            BindingFlags.Public | BindingFlags.Instance);
+        if (field == null)
+        {
+            field = fogSettings.GetType().GetField("_effectMaterial",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+        }
 
-            if (_fogMaterial == null)
-            {
-                field = fogSettings.GetType().GetField("_effectMaterial",
-                    BindingFlags.NonPublic | BindingFlags.Instance);
-                if (field != null)
-                {
-                    _fogMaterial = field.GetValue(fogSettings) as Material;
-                }
-            }
+        if (field != null)
+        {
+            _fogMaterial = field.GetValue(fogSettings) as Material;
         }
 
         if (_fogMaterial == null)
         {
-            Debug.LogWarning("FogSwitcher: FogSettings tidak memiliki effectMaterial. Drag Valley-FogSettings.asset ke slot.");
+            Debug.LogError("FogSwitcher: Gagal membaca effectMaterial dari " + fogSettings.name);
             return;
         }
+
+        _fogShader = _fogMaterial.shader;
+
+        if (_fogShader != null)
+        {
+            var ks = _fogShader.keywordSpace;
+            _kwDistance = ks.FindKeyword("USE_DISTANCE_FOG");
+            _kwHeight = ks.FindKeyword("USE_HEIGHT_FOG");
+            _keywordsReady = _kwDistance.isValid && _kwHeight.isValid;
+
+            if (!_keywordsReady)
+            {
+                Debug.LogWarning("FogSwitcher: Keyword USE_DISTANCE_FOG valid=" + _kwDistance.isValid +
+                    ", USE_HEIGHT_FOG valid=" + _kwHeight.isValid + ". Fallback ke intensity.");
+            }
+        }
+
+        Debug.Log("FogSwitcher siap. Material: " + _fogMaterial.name + ", Shader: " +
+            (_fogShader != null ? _fogShader.name : "null"));
 
         if (disableOnStart)
         {
@@ -50,22 +74,34 @@ public class FogSwitcher : MonoBehaviour
     {
         if (_fogMaterial == null) return;
 
-        if (active)
+        if (_keywordsReady)
         {
-            _fogMaterial.EnableKeyword("USE_DISTANCE_FOG");
-            _fogMaterial.EnableKeyword("USE_HEIGHT_FOG");
+            _fogMaterial.SetKeyword(_kwDistance, active);
+            _fogMaterial.SetKeyword(_kwHeight, active);
         }
         else
         {
-            _fogMaterial.DisableKeyword("USE_DISTANCE_FOG");
-            _fogMaterial.DisableKeyword("USE_HEIGHT_FOG");
+            _fogMaterial.SetFloat("_DistanceFogIntensity", active ? 0.694f : 0f);
+            _fogMaterial.SetFloat("_HeightFogIntensity", active ? 0.631f : 0f);
         }
+
+        Debug.Log("FogSwitcher: fog " + (active ? "HIDUP" : "MATI"));
     }
 
     public void ToggleFog()
     {
         if (_fogMaterial == null) return;
-        bool isActive = _fogMaterial.IsKeywordEnabled("USE_DISTANCE_FOG");
+
+        bool isActive;
+        if (_keywordsReady)
+        {
+            isActive = _fogMaterial.IsKeywordEnabled(_kwDistance);
+        }
+        else
+        {
+            isActive = _fogMaterial.GetFloat("_DistanceFogIntensity") > 0.01f;
+        }
+
         SetFogActive(!isActive);
     }
 }
