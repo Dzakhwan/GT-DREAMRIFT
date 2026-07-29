@@ -15,8 +15,8 @@ public enum InteractionDetectionMode
 /// <summary>
 /// Pasang script ini ke GameObject Player.
 /// Script ini mendeteksi semua objek yang mengimplementasikan IInteractable
-/// (termasuk InteractableObject, CutsceneTrigger, QuestTrigger, dll.) dan menampilkan
-/// tombol Interact di layar saat Player berada dalam jangkauan dan/atau menghadap objek.
+/// (termasuk InteractableObject, CutsceneTrigger, QuestTrigger, ConversationStarter, ItemPickup, dll.) 
+/// dan menampilkan tombol Interact di layar saat Player berada dalam jangkauan dan/atau menghadap objek.
 /// </summary>
 public class PlayerInteraction : MonoBehaviour
 {
@@ -46,6 +46,16 @@ public class PlayerInteraction : MonoBehaviour
     [Tooltip("Drag & Drop komponen Button dari tombol interaksi")]
     [SerializeField] private Button interactButton;
 
+    [Header("UI Positioning (World-To-Screen)")]
+    [Tooltip("Jika true, tombol interaksi otomatis melayang di layar tepat di atas barang/NPC yang terdeteksi.")]
+    [SerializeField] private bool followTargetOnScreen = true;
+
+    [Tooltip("Ketinggian tambahan dari batas atas (top edge) collider objek 3D (default: 0.5 unit di atas objek)")]
+    [SerializeField] private float uiWorldHeightOffset = 0.5f;
+
+    [Tooltip("Offset piksel tambahan di layar (opsional)")]
+    [SerializeField] private Vector2 uiScreenOffset = Vector2.zero;
+
     // Referensi ke objek interaktif (interface) yang saat ini paling dekat/terpilih
     private IInteractable currentTarget;
     // Referensi ke MonoBehaviour dari currentTarget (untuk ambil transform/range)
@@ -65,6 +75,11 @@ public class PlayerInteraction : MonoBehaviour
     private void Update()
     {
         DetectNearbyInteractable();
+    }
+
+    private void LateUpdate()
+    {
+        UpdateInteractButtonPosition();
     }
 
     /// <summary>
@@ -188,7 +203,7 @@ public class PlayerInteraction : MonoBehaviour
 
     /// <summary>
     /// Ambil nilai InteractRange dari MonoBehaviour yang mengimplementasikan IInteractable.
-    /// Mendukung InteractableObject, CutsceneTrigger, dan QuestTrigger secara polymorphic.
+    /// Mendukung InteractableObject, CutsceneTrigger, QuestTrigger, ConversationStarter, dan ItemPickup.
     /// </summary>
     private float GetInteractRange(MonoBehaviour mb)
     {
@@ -213,11 +228,53 @@ public class PlayerInteraction : MonoBehaviour
 
             if (interactLabelText != null)
                 interactLabelText.text = currentTarget.InteractLabel;
+
+            // Segera update posisinya saat baru ditampilkan
+            UpdateInteractButtonPosition();
         }
         else
         {
             // Sembunyikan tombol jika tidak ada target
             interactButtonPanel?.SetActive(false);
+        }
+    }
+
+    /// <summary>
+    /// Jika followTargetOnScreen aktif dan ada target, posisikan tombol UI
+    /// tepat di atas barang/NPC tersebut menggunakan koordinat layar kamera.
+    /// </summary>
+    private void UpdateInteractButtonPosition()
+    {
+        if (!followTargetOnScreen || currentTarget == null || currentTargetMB == null || interactButtonPanel == null || Camera.main == null)
+        {
+            return;
+        }
+
+        RectTransform panelRect = interactButtonPanel.GetComponent<RectTransform>();
+        if (panelRect != null)
+        {
+            Vector3 targetWorldPos = currentTargetMB.transform.position;
+
+            // Cari batas atas dari Collider agar posisi tombol pas di atas objek kecil maupun NPC tinggi
+            Collider col = currentTargetMB.GetComponent<Collider>();
+            if (col == null)
+                col = currentTargetMB.GetComponentInChildren<Collider>();
+            if (col == null)
+                col = currentTargetMB.GetComponentInParent<Collider>();
+
+            if (col != null)
+            {
+                targetWorldPos = new Vector3(col.bounds.center.x, col.bounds.max.y, col.bounds.center.z);
+            }
+
+            Vector3 worldPos = targetWorldPos + Vector3.up * uiWorldHeightOffset;
+            Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+
+            // Pastikan objek ada di depan kamera (Z > 0)
+            if (screenPos.z > 0)
+            {
+                panelRect.position = new Vector3(screenPos.x + uiScreenOffset.x, screenPos.y + uiScreenOffset.y, screenPos.z);
+            }
         }
     }
 
