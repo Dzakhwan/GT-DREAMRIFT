@@ -219,25 +219,6 @@ public class PlayerFight : MonoBehaviour
     public void OpenComboWindow()
     {
         comboWindowTimer = comboWindowDuration;
-        Debug.Log($"[PlayerFight] OpenComboWindow. comboRequested={comboRequested}");
-
-        if (!comboRequested && !comboWindowOpen) return;
-
-        comboRequested = false;
-        comboWindowOpen = false;
-        attackIndex++;
-
-        if (attackIndex > maxComboSteps)
-            attackIndex = 1;
-
-        Debug.Log($"[PlayerFight] Combo lanjut → attackIndex={attackIndex}");
-
-        if (animator != null)
-        {
-            animator.SetInteger("ActionIndex", attackIndex);
-            animator.ResetTrigger("Attack");
-            animator.SetTrigger("Attack");
-        }
     }
 
     /// <summary>
@@ -245,6 +226,27 @@ public class PlayerFight : MonoBehaviour
     /// </summary>
     public void CloseAttack()
     {
+        if (comboRequested)
+        {
+            attackIndex++;
+            if (attackIndex > maxComboSteps)
+                attackIndex = 1;
+
+            comboRequested = false;
+            comboWindowOpen = false;
+            comboWindowTimer = 0f;
+
+            Debug.Log($"[PlayerFight] CloseAttack → combo lanjut attackIndex={attackIndex}");
+
+            if (animator != null)
+            {
+                animator.SetInteger("ActionIndex", attackIndex);
+                animator.ResetTrigger("Attack");
+                animator.SetTrigger("Attack");
+            }
+            return;
+        }
+
         isAttacking = false;
         comboRequested = false;
         comboWindowOpen = false;
