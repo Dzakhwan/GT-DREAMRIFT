@@ -19,17 +19,29 @@ public class MainMenuController : MonoBehaviour
     // Dipakai supaya tombol di belakang tidak bisa diklik selagi ada panel yang terbuka
     public CanvasGroup mainMenuGroup;
 
+    [Header("Environment Background")]
+    // Slot untuk Drag & Drop komponen MainMenuEnvironmentLoader
+    // (biasanya ada di GameObject yang sama dengan script ini)
+    public MainMenuEnvironmentLoader environmentLoader;
+
+    [Header("Main Menu Visuals (untuk disembunyikan saat New Game)")]
+    // Drag GameObject 'Canvas' utama Main Menu ke sini (yang isinya semua UI menu)
+    public GameObject mainMenuCanvas;
+
     // Fungsi ini dipanggil saat tombol NEW GAME diklik
     public void PlayGame()
     {
-        // Memastikan LoadingManager ada sebelum memanggil fungsi pindah scene
-        if (LoadingManager.Instance != null)
+        // Environment (misal CutScene1) yang sudah dimuat di belakang, sekarang diaktifkan penuh
+        // dan dilanjutkan animasinya (bukan diulang dari awal)
+        if (environmentLoader != null)
         {
-            LoadingManager.Instance.LoadLevel(level1Scene);
+            environmentLoader.ActivateLoadedEnvironment();
         }
-        else
+
+        // Sembunyikan seluruh UI Main Menu (Canvas beserta semua isinya)
+        if (mainMenuCanvas != null)
         {
-            Debug.LogError("LoadingManager tidak ditemukan di scene!");
+            mainMenuCanvas.SetActive(false);
         }
     }
 
