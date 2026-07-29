@@ -80,6 +80,9 @@ namespace StarterAssets
 
         [Tooltip("For locking the camera position on all axis")]
         public bool _isAttacking = false;
+
+        [Tooltip("Lock rotation during attack root motion")]
+        public bool _lockRotation = false;
         // cinemachine
         private float _cinemachineTargetYaw;
         private float _cinemachineTargetPitch;
@@ -255,7 +258,7 @@ namespace StarterAssets
             Vector3 inputDirection = new Vector3(_input.move.x, 0.0f, _input.move.y).normalized;
 
             // if there is a move input rotate player when the player is moving
-            if (_input.move != Vector2.zero)
+            if (_input.move != Vector2.zero && !_lockRotation)
             {
                 _targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg +
                                   _mainCamera.transform.eulerAngles.y;
@@ -292,16 +295,18 @@ namespace StarterAssets
 
         private void OnAnimatorMove()
         {
-            if (_hasAnimator && Grounded && _isAttacking)
+            if (_hasAnimator && _lockRotation)
             {
-                // Mengambil jarak perpindahan fisik dari frame animasi saat ini
                 Vector3 animatorDelta = _animator.deltaPosition;
+                Debug.Log($"[TPC] OnAnimatorMove → Grounded={Grounded}, deltaPos={animatorDelta}, _lockRotation={_lockRotation}");
 
-                // Memasukkannya sebagai velocity horizontal, dan tetap memakai gravitasi dari script
-                Vector3 rootMotionVelocity = new Vector3(animatorDelta.x, 0, animatorDelta.z) / Time.deltaTime;
-                rootMotionVelocity.y = _verticalVelocity;
-
-                _controller.Move(rootMotionVelocity * Time.deltaTime);
+                if (Grounded)
+                {
+                    Vector3 rootMotionVelocity = new Vector3(animatorDelta.x, 0, animatorDelta.z) / Time.deltaTime;
+                    rootMotionVelocity.y = _verticalVelocity;
+                    _controller.Move(rootMotionVelocity * Time.deltaTime);
+                    transform.rotation *= _animator.deltaRotation;
+                }
             }
         }
 

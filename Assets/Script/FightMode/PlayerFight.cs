@@ -19,6 +19,7 @@ public class PlayerFight : MonoBehaviour
     [Header("Combo Settings")]
     [SerializeField] private int maxComboSteps = 3;
     [SerializeField] private float comboWindowDuration = 0.25f;
+    [SerializeField] private float preAttackDelay = 0.15f;
 
     // ===================== DAMAGE SETTINGS =====================
     [Header("Damage Settings")]
@@ -50,8 +51,8 @@ public class PlayerFight : MonoBehaviour
 
     // ===================== REFERENCES =====================
     private Animator animator;
-    private CharacterController characterController;
     private StarterAssetsInputs input;
+    private ThirdPersonController tpc;
 
     // ===================== STATE =====================
     private int attackIndex = 0;
@@ -59,19 +60,19 @@ public class PlayerFight : MonoBehaviour
     private bool comboWindowOpen;
     private bool comboRequested;
     private float comboWindowTimer;
+    private bool isPreAttacking;
+    private float preAttackTimer;
 
     // ===================== UNITY LIFECYCLE =====================
 
     private void Awake()
     {
         animator = GetComponent<Animator>();
-        characterController = GetComponent<CharacterController>();
-        if (characterController == null)
-            characterController = GetComponentInParent<CharacterController>();
-
         input = GetComponent<StarterAssetsInputs>();
         if (input == null)
             input = GetComponentInParent<StarterAssetsInputs>();
+
+        tpc = GetComponent<ThirdPersonController>();
     }
 
     private void Start()
@@ -89,6 +90,16 @@ public class PlayerFight : MonoBehaviour
     {
         if (comboWindowTimer > 0f)
             comboWindowTimer -= Time.deltaTime;
+
+        if (isPreAttacking)
+        {
+            preAttackTimer -= Time.deltaTime;
+            if (preAttackTimer <= 0f)
+            {
+                isPreAttacking = false;
+                StartAttack(1);
+            }
+        }
 
         HandleAttackInput();
     }
@@ -129,27 +140,51 @@ public class PlayerFight : MonoBehaviour
     {
         if (isAttacking)
         {
-            // Simpan request combo jika masih dalam jendela combo
             if (comboWindowTimer > 0f)
             {
                 comboRequested = true;
                 comboWindowOpen = true;
                 Debug.Log("[PlayerFight] Combo requested");
             }
+            else
+            {
+                Debug.Log($"[PlayerFight] TryAttack blocked: comboWindowTimer={comboWindowTimer:F3} expired");
+            }
             return;
         }
 
-        StartAttack();
+        // Pre-attack: stop movement, biarkan rotasi, lalu StartAttack setelah delay
+        isPreAttacking = true;
+        isAttacking = true;
+        preAttackTimer = preAttackDelay;
+        comboRequested = false;
+        comboWindowTimer = 0f;
+
+        if (tpc != null)
+        {
+            tpc._isAttacking = true;
+            tpc._lockRotation = false;
+        }
+
+        Debug.Log($"[PlayerFight] Pre-attack dimulai, delay={preAttackDelay:F2}s");
     }
 
-    private void StartAttack()
+    // Memulai serangan dengan combo index tertentu.
+    // Dipanggil dari TryAttack (serangan pertama) dan CloseAttack (combo lanjutan).
+    private void StartAttack(int index = 1)
     {
         isAttacking = true;
-        attackIndex = 1;
+        attackIndex = index;
         comboRequested = false;
         comboWindowTimer = 0f;
 
         Debug.Log($"[PlayerFight] StartAttack → attackIndex={attackIndex}");
+
+        if (tpc != null)
+        {
+            tpc._isAttacking = true;
+            tpc._lockRotation = true;
+        }
 
         if (animator != null)
         {
@@ -219,6 +254,7 @@ public class PlayerFight : MonoBehaviour
     public void OpenComboWindow()
     {
         comboWindowTimer = comboWindowDuration;
+        Debug.Log($"[PlayerFight] OpenComboWindow → comboWindowTimer={comboWindowTimer:F3}");
     }
 
     /// <summary>
@@ -226,24 +262,20 @@ public class PlayerFight : MonoBehaviour
     /// </summary>
     public void CloseAttack()
     {
+        Debug.Log($"[PlayerFight] CloseAttack called → attackIndex={attackIndex}, comboRequested={comboRequested}, comboWindowTimer={comboWindowTimer:F3}");
+
         if (comboRequested)
         {
-            attackIndex++;
-            if (attackIndex > maxComboSteps)
-                attackIndex = 1;
+            int nextIndex = attackIndex + 1;
+            if (nextIndex > maxComboSteps) nextIndex = 1;
+
+            Debug.Log($"[PlayerFight] CloseAttack → combo lanjut attackIndex={nextIndex}");
 
             comboRequested = false;
             comboWindowOpen = false;
             comboWindowTimer = 0f;
 
-            Debug.Log($"[PlayerFight] CloseAttack → combo lanjut attackIndex={attackIndex}");
-
-            if (animator != null)
-            {
-                animator.SetInteger("ActionIndex", attackIndex);
-                animator.ResetTrigger("Attack");
-                animator.SetTrigger("Attack");
-            }
+            StartAttack(nextIndex);
             return;
         }
 
@@ -255,19 +287,14 @@ public class PlayerFight : MonoBehaviour
 
         Debug.Log("[PlayerFight] CloseAttack → state reset.");
 
+        if (tpc != null)
+        {
+            tpc._isAttacking = false;
+            tpc._lockRotation = false;
+        }
+
         if (animator != null)
             animator.SetInteger("ActionIndex", 0);
-    }
-
-    // ===================== ROOT MOTION =====================
-
-    private void OnAnimatorMove()
-    {
-        if (animator == null || characterController == null) return;
-        if (!isAttacking) return;
-
-        characterController.Move(animator.deltaPosition);
-        transform.rotation *= animator.deltaRotation;
     }
 
     // ===================== DEBUG =====================
