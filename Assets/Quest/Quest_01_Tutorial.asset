@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8e9fe2f5c0390c43b2cd3d340144973, type: 3}
   m_Name: Quest_01_Tutorial
   m_EditorClassIdentifier: Assembly-CSharp::Dreamrift.QuestSystem.QuestData
-  questId: 
-  displayName: New Quest
-  description: 
+  questId: Quest_01_Tutorial
+  displayName: Tungtor Test
+  description: Awawawawawaaaaaaaaaaaaa
