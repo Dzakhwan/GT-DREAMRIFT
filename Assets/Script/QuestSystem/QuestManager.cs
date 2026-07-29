@@ -14,6 +14,8 @@ namespace Dreamrift.QuestSystem
 
         private readonly Dictionary<string, QuestState> questStates = new Dictionary<string, QuestState>(StringComparer.Ordinal);
 
+        public QuestData CurrentActiveQuest { get; private set; }
+
         public event Action<QuestData, QuestState, QuestState> QuestStateChanged;
         public event Action<QuestData> QuestStarted;
         public event Action<QuestData> QuestCompleted;
@@ -60,6 +62,7 @@ namespace Dreamrift.QuestSystem
             }
 
             questStates[quest.QuestId] = QuestState.Active;
+            CurrentActiveQuest = quest;
             Debug.Log($"[QuestManager] Quest '{quest.DisplayName}' ({quest.QuestId}) changed state: {currentState} -> {QuestState.Active}");
 
             QuestStateChanged?.Invoke(quest, currentState, QuestState.Active);
@@ -83,6 +86,10 @@ namespace Dreamrift.QuestSystem
             }
 
             questStates[quest.QuestId] = QuestState.Complete;
+            if (CurrentActiveQuest == quest)
+            {
+                CurrentActiveQuest = null;
+            }
             Debug.Log($"[QuestManager] Quest '{quest.DisplayName}' ({quest.QuestId}) changed state: {currentState} -> {QuestState.Complete}");
 
             QuestStateChanged?.Invoke(quest, currentState, QuestState.Complete);
@@ -104,6 +111,10 @@ namespace Dreamrift.QuestSystem
             }
 
             questStates[quest.QuestId] = QuestState.NotStarted;
+            if (CurrentActiveQuest == quest)
+            {
+                CurrentActiveQuest = null;
+            }
             Debug.Log($"[QuestManager] Quest '{quest.DisplayName}' ({quest.QuestId}) reset state: {currentState} -> {QuestState.NotStarted}");
 
             QuestStateChanged?.Invoke(quest, currentState, QuestState.NotStarted);
