@@ -38,6 +38,9 @@ public class EnemyHealth : MonoBehaviour, IDamageable
     [SerializeField] private UnityEvent onDamaged;
     [SerializeField] private UnityEvent onDeath;
 
+    public event System.Action<float, float> OnHealthChanged;
+    public event System.Action OnDeath;
+
     // State
     private int currentHealth;
     private bool isDead = false;
@@ -70,6 +73,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable
     {
         currentHealth = maxHealth;
         UpdateHealthBar();
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 
     // ===================== IDamageable =====================
@@ -86,6 +90,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable
 
         UpdateHealthBar();
         onDamaged?.Invoke();
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
         // Tampilkan health bar lewat pool
         if (usePooledHealthBar && EnemyHealthBarPool.Instance != null)
@@ -123,6 +128,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable
 
         Debug.Log($"[Enemy] {gameObject.name} mati!");
         onDeath?.Invoke();
+        OnDeath?.Invoke();
 
         // Kembalikan health bar ke pool
         if (usePooledHealthBar && EnemyHealthBarPool.Instance != null)
@@ -137,8 +143,10 @@ public class EnemyHealth : MonoBehaviour, IDamageable
             Instantiate(lootPrefab, transform.position + lootOffset, Quaternion.identity);
 
         // Nonaktifkan komponen AI agar musuh berhenti bergerak
-        var ai = GetComponent<EnemyOrganicSwarmAI>();
-        if (ai != null) ai.enabled = false;
+        var aiController = GetComponent<EnemyAIController>();
+        if (aiController != null) aiController.enabled = false;
+
+        // Note: New AI scripts should also subscribe to OnDeath and self-disable.
 
         var agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
         if (agent != null) agent.isStopped = true;

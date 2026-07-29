@@ -3,96 +3,59 @@ using System.Collections.Generic;
 using UnityEngine;
 using DialogueEditor;
 
-public class ConversationStarter : MonoBehaviour
+/// <summary>
+/// Komponen pemicu percakapan untuk NPC yang terintegrasi penuh dengan IInteractable.
+/// Pasang script ini ke NPC yang memiliki Collider dengan Layer 'Interactable'.
+/// Saat pemain mengarahkan Raycast ke NPC dan menekan tombol Interact universal,
+/// OnInteract() akan dipanggil dan memulai obrolan (NPCConversation).
+/// </summary>
+public class ConversationStarter : MonoBehaviour, IInteractable
 {
     [Header("Conversation")]
     [SerializeField] private NPCConversation myConversation;
 
-    [Header("Interaction")]
+    [Header("Interaction (IInteractable)")]
+    [Tooltip("Teks label tombol saat Player mendeteksi NPC ini (bisa diatur di Inspector)")]
+    [SerializeField] private string interactLabel = "Bicara";
+
+    [Tooltip("Jarak maksimal untuk memicu percakapan")]
     [SerializeField] private float interactionRadius = 3f;
 
-    [Header("UI")]
-    [SerializeField] private GameObject desktopUI;   // UI Press F
-    [SerializeField] private GameObject androidUI;  // Tombol Interact Android
-    
     [Header("UI To Hide During Conversation")]
     [SerializeField] private List<GameObject> uiToHideDuringConversation;
 
-    private Transform player;
-    private bool playerInRange;
+    public string InteractLabel => string.IsNullOrEmpty(interactLabel) ? "Bicara" : interactLabel;
+    public float InteractionRadius => interactionRadius;
 
-    private void Start()
+    /// <summary>
+    /// Implementasi IInteractable. Dipanggil oleh PlayerInteraction saat tombol UI interaksi ditekan.
+    /// </summary>
+    public void OnInteract()
     {
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-
-        if (playerObj != null)
-        {
-            player = playerObj.transform;
-        }
-
-        // Sembunyikan UI saat awal
-        if (desktopUI != null)
-            desktopUI.SetActive(false);
-
-        if (androidUI != null)
-            androidUI.SetActive(false);
+        StartDialogue();
     }
 
-    private void Update()
-    {
-        if (player == null) return;
-
-        float distance = Vector3.Distance(transform.position, player.position);
-
-        // Jika player dekat NPC
-        if (distance <= interactionRadius)
-        {
-            playerInRange = true;
-
-#if UNITY_ANDROID
-            // Android
-            if (androidUI != null)
-                androidUI.SetActive(true);
-#else
-            // Desktop
-            if (desktopUI != null)
-                desktopUI.SetActive(true);
-
-            // Tekan G di desktop
-            if (Input.GetKeyDown(KeyCode.G))
-            {
-                StartDialogue();
-            }
-#endif
-        }
-        else
-        {
-            playerInRange = false;
-
-            if (desktopUI != null)
-                desktopUI.SetActive(false);
-
-            if (androidUI != null)
-                androidUI.SetActive(false);
-        }
-    }
-
-    // Dipanggil tombol Android
+    /// <summary>
+    /// Memulai obrolan menggunakan DialogueEditor.
+    /// </summary>
     public void StartDialogue()
     {
-        if (playerInRange)
+        if (myConversation == null)
         {
-            if (uiToHideDuringConversation != null)
-            {
-                foreach (var go in uiToHideDuringConversation)
-                {
-                    if (go != null) go.SetActive(false);
-                }
-            }
-            
-            ConversationManager.OnConversationEnded += RestoreUI;
-            ConversationManager.Instance.StartConversation(myConversation);
+            Debug.LogWarning("ConversationStarter: myConversation belum di-assign di Inspector!", this);
+            return;
         }
+
+        if (uiToHideDuringConversation != null)
+        {
+            foreach (var go in uiToHideDuringConversation)
+            {
+                if (go != null) go.SetActive(false);
+            }
+        }
+        
+        ConversationManager.OnConversationEnded += RestoreUI;
+        ConversationManager.Instance.StartConversation(myConversation);
     }
 
     private void RestoreUI()
@@ -107,7 +70,7 @@ public class ConversationStarter : MonoBehaviour
         }
     }
 
-    // Visual radius
+    // Visualisasi radius interaksi di Scene View
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;
