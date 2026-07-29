@@ -50,35 +50,14 @@ public class ConversationStarter : MonoBehaviour, IInteractable
         if (player == null) return;
 
         float distance = Vector3.Distance(transform.position, player.position);
+        playerInRange = distance <= interactionRadius;
 
-        // Jika player dekat NPC (untuk fallback Legacy UI)
-        if (distance <= interactionRadius)
-        {
-            playerInRange = true;
+        // Fallback opsional jika masih menggunakan Legacy UI terpisah
+        if (desktopUI != null)
+            desktopUI.SetActive(playerInRange);
 
-#if UNITY_ANDROID
-            if (androidUI != null)
-                androidUI.SetActive(true);
-#else
-            if (desktopUI != null)
-                desktopUI.SetActive(true);
-
-            if (Input.GetKeyDown(KeyCode.G))
-            {
-                StartDialogue();
-            }
-#endif
-        }
-        else
-        {
-            playerInRange = false;
-
-            if (desktopUI != null)
-                desktopUI.SetActive(false);
-
-            if (androidUI != null)
-                androidUI.SetActive(false);
-        }
+        if (androidUI != null)
+            androidUI.SetActive(playerInRange);
     }
 
     /// <summary>
