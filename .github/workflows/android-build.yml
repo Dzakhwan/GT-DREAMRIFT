@@ -1,0 +1,73 @@
+name: Android Build 🤖
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  buildForAndroid:
+    name: Build for Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Unity Library
+        uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-Android
+          restore-keys: |
+            Library-
+
+      - name: Build Unity Android APK
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: Android
+          buildName: GT-Dreamrift
+          # Set to true if you want an .aab instead of .apk
+          androidAppBundle: false
+          # Optional: Keystore details for signed release build
+          # androidKeystoreName: user.keystore
+          # androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          # androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          # androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          # androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build-Android
+          path: build/Android
+
+      # Notify Discord/Slack on Failure
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          if [ -n "${{ secrets.DISCORD_WEBHOOK }}" ]; then
+            curl -H "Content-Type: application/json" \
+                 -d "{\"content\": \"❌ Android Build Failed on branch ${{ github.ref_name }}!\"}" \
+                 ${{ secrets.DISCORD_WEBHOOK }}
+          else
+            echo "DISCORD_WEBHOOK not set, skipping failure notification."
+          fi
+
+      # Notify Discord/Slack on Success
+      - name: Notify on Success
+        if: success()
+        run: |
+          if [ -n "${{ secrets.DISCORD_WEBHOOK }}" ]; then
+            curl -H "Content-Type: application/json" \
+                 -d "{\"content\": \"✅ Android Build Succeeded on branch ${{ github.ref_name }}! Download the artifact from GitHub Actions.\"}" \
+                 ${{ secrets.DISCORD_WEBHOOK }}
+          else
+            echo "DISCORD_WEBHOOK not set, skipping success notification."
+          fi
