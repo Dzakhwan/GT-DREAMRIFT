@@ -3,20 +3,27 @@ using System.Collections.Generic;
 using UnityEngine;
 using DialogueEditor;
 
-public class ConversationStarter : MonoBehaviour
+public class ConversationStarter : MonoBehaviour, IInteractable
 {
     [Header("Conversation")]
     [SerializeField] private NPCConversation myConversation;
 
-    [Header("Interaction")]
+    [Header("Interaction (IInteractable)")]
+    [Tooltip("Teks label tombol saat Player mendeteksi NPC ini (bisa diatur di Inspector)")]
+    [SerializeField] private string interactLabel = "Bicara";
+
+    [Tooltip("Jarak maksimal untuk memicu percakapan")]
     [SerializeField] private float interactionRadius = 3f;
 
-    [Header("UI")]
-    [SerializeField] private GameObject desktopUI;   // UI Press F
-    [SerializeField] private GameObject androidUI;  // Tombol Interact Android
-    
     [Header("UI To Hide During Conversation")]
     [SerializeField] private List<GameObject> uiToHideDuringConversation;
+
+    [Header("Legacy UI (Opsional - abaikan jika menggunakan sistem PlayerInteraction)")]
+    [SerializeField] private GameObject desktopUI;   // UI Press F
+    [SerializeField] private GameObject androidUI;  // Tombol Interact Android
+
+    public string InteractLabel => string.IsNullOrEmpty(interactLabel) ? "Bicara" : interactLabel;
+    public float InteractionRadius => interactionRadius;
 
     private Transform player;
     private bool playerInRange;
@@ -30,7 +37,7 @@ public class ConversationStarter : MonoBehaviour
             player = playerObj.transform;
         }
 
-        // Sembunyikan UI saat awal
+        // Sembunyikan UI lama saat awal
         if (desktopUI != null)
             desktopUI.SetActive(false);
 
@@ -44,21 +51,18 @@ public class ConversationStarter : MonoBehaviour
 
         float distance = Vector3.Distance(transform.position, player.position);
 
-        // Jika player dekat NPC
+        // Jika player dekat NPC (untuk fallback Legacy UI)
         if (distance <= interactionRadius)
         {
             playerInRange = true;
 
 #if UNITY_ANDROID
-            // Android
             if (androidUI != null)
                 androidUI.SetActive(true);
 #else
-            // Desktop
             if (desktopUI != null)
                 desktopUI.SetActive(true);
 
-            // Tekan G di desktop
             if (Input.GetKeyDown(KeyCode.G))
             {
                 StartDialogue();
@@ -77,22 +81,33 @@ public class ConversationStarter : MonoBehaviour
         }
     }
 
-    // Dipanggil tombol Android
+    /// <summary>
+    /// Implementasi IInteractable.Dipanggil oleh PlayerInteraction saat tombol UI interaksi ditekan.
+    /// </summary>
+    public void OnInteract()
+    {
+        StartDialogue();
+    }
+
+    // Dipanggil oleh OnInteract() atau tombol Android/Legacy
     public void StartDialogue()
     {
-        if (playerInRange)
+        if (myConversation == null)
         {
-            if (uiToHideDuringConversation != null)
-            {
-                foreach (var go in uiToHideDuringConversation)
-                {
-                    if (go != null) go.SetActive(false);
-                }
-            }
-            
-            ConversationManager.OnConversationEnded += RestoreUI;
-            ConversationManager.Instance.StartConversation(myConversation);
+            Debug.LogWarning("ConversationStarter: myConversation belum di-assign di Inspector!", this);
+            return;
         }
+
+        if (uiToHideDuringConversation != null)
+        {
+            foreach (var go in uiToHideDuringConversation)
+            {
+                if (go != null) go.SetActive(false);
+            }
+        }
+        
+        ConversationManager.OnConversationEnded += RestoreUI;
+        ConversationManager.Instance.StartConversation(myConversation);
     }
 
     private void RestoreUI()
