@@ -3,6 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using DialogueEditor;
 
+/// <summary>
+/// Komponen pemicu percakapan untuk NPC yang terintegrasi penuh dengan IInteractable.
+/// Pasang script ini ke NPC yang memiliki Collider dengan Layer 'Interactable'.
+/// Saat pemain mengarahkan Raycast ke NPC dan menekan tombol Interact universal,
+/// OnInteract() akan dipanggil dan memulai obrolan (NPCConversation).
+/// </summary>
 public class ConversationStarter : MonoBehaviour, IInteractable
 {
     [Header("Conversation")]
@@ -18,57 +24,20 @@ public class ConversationStarter : MonoBehaviour, IInteractable
     [Header("UI To Hide During Conversation")]
     [SerializeField] private List<GameObject> uiToHideDuringConversation;
 
-    [Header("Legacy UI (Opsional - abaikan jika menggunakan sistem PlayerInteraction)")]
-    [SerializeField] private GameObject desktopUI;   // UI Press F
-    [SerializeField] private GameObject androidUI;  // Tombol Interact Android
-
     public string InteractLabel => string.IsNullOrEmpty(interactLabel) ? "Bicara" : interactLabel;
     public float InteractionRadius => interactionRadius;
 
-    private Transform player;
-    private bool playerInRange;
-
-    private void Start()
-    {
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-
-        if (playerObj != null)
-        {
-            player = playerObj.transform;
-        }
-
-        // Sembunyikan UI lama saat awal
-        if (desktopUI != null)
-            desktopUI.SetActive(false);
-
-        if (androidUI != null)
-            androidUI.SetActive(false);
-    }
-
-    private void Update()
-    {
-        if (player == null) return;
-
-        float distance = Vector3.Distance(transform.position, player.position);
-        playerInRange = distance <= interactionRadius;
-
-        // Fallback opsional jika masih menggunakan Legacy UI terpisah
-        if (desktopUI != null)
-            desktopUI.SetActive(playerInRange);
-
-        if (androidUI != null)
-            androidUI.SetActive(playerInRange);
-    }
-
     /// <summary>
-    /// Implementasi IInteractable.Dipanggil oleh PlayerInteraction saat tombol UI interaksi ditekan.
+    /// Implementasi IInteractable. Dipanggil oleh PlayerInteraction saat tombol UI interaksi ditekan.
     /// </summary>
     public void OnInteract()
     {
         StartDialogue();
     }
 
-    // Dipanggil oleh OnInteract() atau tombol Android/Legacy
+    /// <summary>
+    /// Memulai obrolan menggunakan DialogueEditor.
+    /// </summary>
     public void StartDialogue()
     {
         if (myConversation == null)
@@ -101,7 +70,7 @@ public class ConversationStarter : MonoBehaviour, IInteractable
         }
     }
 
-    // Visual radius
+    // Visualisasi radius interaksi di Scene View
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;

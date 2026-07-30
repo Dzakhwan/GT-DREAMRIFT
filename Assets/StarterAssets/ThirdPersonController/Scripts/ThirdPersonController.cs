@@ -78,6 +78,11 @@ namespace StarterAssets
         [Tooltip("For locking the camera position on all axis")]
         public bool LockCameraPosition = false;
 
+        [Tooltip("For locking the camera position on all axis")]
+        public bool _isAttacking = false;
+
+        [Tooltip("Lock rotation during attack root motion")]
+        public bool _lockRotation = false;
         // cinemachine
         private float _cinemachineTargetYaw;
         private float _cinemachineTargetPitch;
@@ -164,7 +169,6 @@ namespace StarterAssets
             JumpAndGravity();
             GroundedCheck();
             Move();
-            HandleFire();
         }
 
         private void LateUpdate()
@@ -222,11 +226,11 @@ namespace StarterAssets
             // set target speed based on move speed, sprint speed and if sprint is pressed
             float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
 
-            // a simplistic acceleration and deceleration designed to be easy to remove, replace, or iterate upon
-
-            // note: Vector2's == operator uses approximation so is not floating point error prone, and is cheaper than magnitude
             // if there is no input, set the target speed to 0
             if (_input.move == Vector2.zero) targetSpeed = 0.0f;
+
+            // KUNCI 1: Hentikan akselerasi pergerakan dari input saat sedang menyerang
+            if (_isAttacking) targetSpeed = 0.0f;
 
             // a reference to the players current horizontal velocity
             float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;
@@ -238,12 +242,8 @@ namespace StarterAssets
             if (currentHorizontalSpeed < targetSpeed - speedOffset ||
                 currentHorizontalSpeed > targetSpeed + speedOffset)
             {
-                // creates curved result rather than a linear one giving a more organic speed change
-                // note T in Lerp is clamped, so we don't need to clamp our speed
                 _speed = Mathf.Lerp(currentHorizontalSpeed, targetSpeed * inputMagnitude,
                     Time.deltaTime * SpeedChangeRate);
-
-                // round speed to 3 decimal places
                 _speed = Mathf.Round(_speed * 1000f) / 1000f;
             }
             else
@@ -257,9 +257,8 @@ namespace StarterAssets
             // normalise input direction
             Vector3 inputDirection = new Vector3(_input.move.x, 0.0f, _input.move.y).normalized;
 
-            // note: Vector2's != operator uses approximation so is not floating point error prone, and is cheaper than magnitude
             // if there is a move input rotate player when the player is moving
-            if (_input.move != Vector2.zero)
+            if (_input.move != Vector2.zero && !_lockRotation)
             {
                 _targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg +
                                   _mainCamera.transform.eulerAngles.y;
@@ -270,18 +269,44 @@ namespace StarterAssets
                 transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
             }
 
-
             Vector3 targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
 
-            // move the player
-            _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
-                             new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
+            // KUNCI 2: PEMISAHAN LOGIKA EKSEKUSI PERGERAKAN
+            if (_isAttacking)
+            {
+                // SAAT FIGHTING: Script HANYA mengaplikasikan gravitasi (Y axis).
+                // Pergerakan horizontal (X dan Z axis) akan diurus sepenuhnya oleh animasi di OnAnimatorMove()
+                _controller.Move(new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
+            }
+            else
+            {
+                // SAAT EKSPLORASI NORMAL: Pergerakan menggunakan hitungan script
+                _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
+                                 new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
+            }
 
             // update animator if using character
             if (_hasAnimator)
             {
                 _animator.SetFloat(_animIDSpeed, _animationBlend);
                 _animator.SetFloat(_animIDMotionSpeed, inputMagnitude);
+            }
+        }
+
+        private void OnAnimatorMove()
+        {
+            if (_hasAnimator && _lockRotation)
+            {
+                Vector3 animatorDelta = _animator.deltaPosition;
+                Debug.Log($"[TPC] OnAnimatorMove → Grounded={Grounded}, deltaPos={animatorDelta}, _lockRotation={_lockRotation}");
+
+                if (Grounded)
+                {
+                    Vector3 rootMotionVelocity = new Vector3(animatorDelta.x, 0, animatorDelta.z) / Time.deltaTime;
+                    rootMotionVelocity.y = _verticalVelocity;
+                    _controller.Move(rootMotionVelocity * Time.deltaTime);
+                    transform.rotation *= _animator.deltaRotation;
+                }
             }
         }
 
@@ -353,18 +378,7 @@ namespace StarterAssets
                 _verticalVelocity += Gravity * Time.deltaTime;
             }
         }
-        private void Attack()
-        {
-            Debug.Log("FIRE!");
-        }
-        private void HandleFire()
-        {
-            if (_input.fire)
-            {
-                Attack();
-                _input.fire = false;
-            }
-        }
+
 
         private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
         {
