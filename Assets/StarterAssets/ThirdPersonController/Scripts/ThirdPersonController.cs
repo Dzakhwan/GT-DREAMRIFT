@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 #if ENABLE_INPUT_SYSTEM 
 using UnityEngine.InputSystem;
 #endif
@@ -77,6 +77,12 @@ namespace StarterAssets
 
         [Tooltip("For locking the camera position on all axis")]
         public bool LockCameraPosition = false;
+
+        [Tooltip("Lock vertical camera pitch to a fixed Isometric perspective angle")]
+        public bool lockPitchAngle = true;
+
+        [Tooltip("Fixed pitch angle in degrees for Isometric POV perspective (e.g. 25)")]
+        public float fixedPitchAngle = 25.0f;
 
         [Tooltip("For locking the camera position on all axis")]
         public bool _isAttacking = false;
@@ -209,12 +215,24 @@ namespace StarterAssets
                 float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
 
                 _cinemachineTargetYaw += _input.look.x * deltaTimeMultiplier;
-                _cinemachineTargetPitch += _input.look.y * deltaTimeMultiplier;
+
+                if (!lockPitchAngle)
+                {
+                    _cinemachineTargetPitch += _input.look.y * deltaTimeMultiplier;
+                }
             }
 
             // clamp our rotations so our values are limited 360 degrees
             _cinemachineTargetYaw = ClampAngle(_cinemachineTargetYaw, float.MinValue, float.MaxValue);
-            _cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, BottomClamp, TopClamp);
+
+            if (lockPitchAngle)
+            {
+                _cinemachineTargetPitch = fixedPitchAngle;
+            }
+            else
+            {
+                _cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, BottomClamp, TopClamp);
+            }
 
             // Cinemachine will follow this target
             CinemachineCameraTarget.transform.rotation = Quaternion.Euler(_cinemachineTargetPitch + CameraAngleOverride,
