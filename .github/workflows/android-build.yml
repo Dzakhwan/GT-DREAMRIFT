@@ -43,11 +43,11 @@ jobs:
           # Optional: 'androidPackage' for .apk or 'androidAppBundle' for .aab
           androidExportType: androidPackage
           # Optional: Keystore details for signed release build
-          # androidKeystoreName: user.keystore
-          # androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          # androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
-          # androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
-          # androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+          androidKeystoreName: user.keystore
+          androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
