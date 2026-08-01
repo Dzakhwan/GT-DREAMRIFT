@@ -10012,7 +10012,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 50.00049, y: -70.6}
+  m_AnchoredPosition: {x: 50.00049, y: -78.4}
   m_SizeDelta: {x: 189.421, y: 68.249}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &306699866
@@ -23316,7 +23316,6 @@ GameObject:
   - component: {fileID: 637928074}
   - component: {fileID: 637928073}
   - component: {fileID: 637928072}
-  - component: {fileID: 637928075}
   m_Layer: 5
   m_Name: Exit
   m_TagString: Untagged
@@ -23438,22 +23437,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 637928070}
   m_CullTransparentMesh: 1
---- !u!114 &637928075
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 637928070}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d7f0d35603c424945a0f5d5f0df0676c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ButtonHoverEffect
-  targetGraphic: {fileID: 306699866}
-  hoverColor: {r: 1, g: 1, b: 1, a: 1}
-  hoverScale: 1.1
-  transitionSpeed: 8
 --- !u!1001 &638959021
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -49542,7 +49525,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 50.00049, y: -21}
+  m_AnchoredPosition: {x: 50.00049, y: -25.8}
   m_SizeDelta: {x: 189.421, y: 68.249}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1265974931
@@ -65802,7 +65785,6 @@ GameObject:
   - component: {fileID: 1734391099}
   - component: {fileID: 1734391098}
   - component: {fileID: 1734391097}
-  - component: {fileID: 1734391100}
   m_Layer: 5
   m_Name: Settings
   m_TagString: Untagged
@@ -65936,22 +65918,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1734391095}
   m_CullTransparentMesh: 1
---- !u!114 &1734391100
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1734391095}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d7f0d35603c424945a0f5d5f0df0676c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ButtonHoverEffect
-  targetGraphic: {fileID: 1265974931}
-  hoverColor: {r: 1, g: 1, b: 1, a: 1}
-  hoverScale: 1.1
-  transitionSpeed: 8
 --- !u!1 &1740765475
 GameObject:
   m_ObjectHideFlags: 0

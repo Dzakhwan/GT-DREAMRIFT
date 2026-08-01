@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -8,24 +9,30 @@ public class HUDManager : MonoBehaviour
 
     [Header("Health Settings")]
     public Image healthFill;
+    public GameObject healthBarUI;
     public float maxHealth = 100f;
     public float currentHealth;
     public float decayRate = 5f;
 
     [Header("Pause Panel")]
     public GameObject pausePanel;
-    public Image pausePanelBackground; // Image milik PausePanel sendiri
+    public Image pausePanelBackground;
     private bool isPaused = false;
     private bool pausedByHealthEmpty = false;
 
     [Header("Pause Panel Contents")]
-    public GameObject titleText;      // DreamRift
+    public GameObject titleText;
     public GameObject resumeButton;
     public GameObject settingsButton;
     public GameObject exitButton;
 
     [Header("Settings Panel")]
     public GameObject settingPanel;
+
+    [Header("Scenes Without HUD")]
+    public List<string> scenesWithoutHUD = new List<string> { "Main Menu", "CutScene1" };
+
+    private bool inMainMenu = false;
 
     void Awake()
     {
@@ -41,9 +48,25 @@ public class HUDManager : MonoBehaviour
         currentHealth = maxHealth;
     }
 
+    void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        inMainMenu = scenesWithoutHUD.Contains(scene.name);
+        healthBarUI.SetActive(!inMainMenu);
+    }
+
     void Update()
     {
-        if (!isPaused && currentHealth > 0)
+        if (!isPaused && !inMainMenu && currentHealth > 0)
         {
             currentHealth -= decayRate * Time.deltaTime;
             currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
@@ -104,8 +127,6 @@ public class HUDManager : MonoBehaviour
         SceneManager.LoadScene("Main Menu");
     }
 
-    // ==== SETTINGS PANEL ====
-
     public void OpenSettings()
     {
         settingPanel.SetActive(true);
@@ -115,7 +136,7 @@ public class HUDManager : MonoBehaviour
         settingsButton.SetActive(false);
         exitButton.SetActive(false);
 
-        pausePanelBackground.enabled = false; // sembunyikan visual + otomatis berhenti nge-block klik
+        pausePanelBackground.enabled = false;
     }
 
     public void CloseSettings()
@@ -127,6 +148,6 @@ public class HUDManager : MonoBehaviour
         settingsButton.SetActive(true);
         exitButton.SetActive(true);
 
-        pausePanelBackground.enabled = true; // munculkan lagi
+        pausePanelBackground.enabled = true;
     }
 }

@@ -42,14 +42,14 @@ public class ButtonHoverEffect : MonoBehaviour, IPointerEnterHandler, IPointerEx
 
     void Update()
     {
-        // Animasi halus menuju target (hover atau normal), dijalankan tiap frame
+        // Pakai unscaledDeltaTime supaya animasi tetap jalan walau game di-pause (Time.timeScale = 0)
         Vector3 targetScale = isHovering ? normalScale * hoverScale : normalScale;
-        transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * transitionSpeed);
+        transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.unscaledDeltaTime * transitionSpeed);
 
         if (targetGraphic != null)
         {
             Color targetColor = isHovering ? hoverColor : normalColor;
-            targetGraphic.color = Color.Lerp(targetGraphic.color, targetColor, Time.deltaTime * transitionSpeed);
+            targetGraphic.color = Color.Lerp(targetGraphic.color, targetColor, Time.unscaledDeltaTime * transitionSpeed);
         }
     }
 
