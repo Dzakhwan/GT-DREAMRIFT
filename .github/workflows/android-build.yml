@@ -24,6 +24,12 @@ jobs:
           restore-keys: |
             Library-
 
+      # Tambahkan Virtual RAM (Swap) agar server tidak crash saat compile Android
+      - name: Add Swap Space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 10
+
       - name: Build Unity Android APK
         uses: game-ci/unity-builder@v4
         env:
