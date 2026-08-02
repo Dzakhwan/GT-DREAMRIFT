@@ -31,12 +31,17 @@ Proyek ini dibangun secara modular menggunakan C# dengan sistem-sistem utama ber
   - 📍 **ReachLocation**: Menjangkau area trigger / checkpoint lokasi.
   - ⚔️ **DefeatEnemy**: Mengalahkan sejumlah musuh (terhubung otomatis ke `EnemyHealth.Die()`).
   - 🎒 **CollectItem**: Mengumpulkan item di inventaris.
-- **Multiple Item Rewards**: Pengiriman otomatis hadiah item (`QuestReward[]`) langsung ke [InventoryManager](GT-DREAMRIFT/Assets/Script/InventorySystem/InventoryManager.cs) saat quest diselesaikan.
+- **Multiple Item Rewards**: Pengiriman otomatis hadiah item (`QuestReward[]`) langsung ke [InventoryManager](Assets/Script/InventorySystem/InventoryManager.cs) saat quest diselesaikan.
 - **Quest Log UI Skeleton**: Panel UI daftar quest (List View & Detail Panel) yang dapat di-toggle via shortcut **`J`** di PC atau tombol UI di Mobile.
 
-### 3. Sistem Inventaris & Item Pickup
+### 3. Sistem Inventaris & World Item Pickup
 - **Inventory System**: Penyimpanan item hasil pengumpulan (*loot*) dan hadiah quest di sepanjang eksplorasi.
-- **Item Pickup**: Objek di dunia game yang dapat diambil dan dimasukkan ke dalam ransel pemain.
+- **Interactive Item Pickup & World Drops**:
+  - Objek item di 3D world ([ItemPickup.cs](Assets/Script/InventorySystem/ItemPickup.cs)) yang terhubung ke `IInteractable` dan `PlayerInteraction`.
+  - **Dua Mode Pemungutan**: Mode Button Interaction (`Ambil Item (E)`) dan Mode Walkover (otomatis terambil saat diinjak).
+  - **3D Floating Motion**: Efek rotasi dan melayang halus ([ItemFloatingAnimation.cs](Assets/Script/InventorySystem/ItemFloatingAnimation.cs)) pada barang drop.
+  - **Enemy Loot Drops**: Musuh mati ([EnemyHealth.cs](Assets/Script/Health%20System/EnemyHealth.cs)) otomatis menjatuhkan item drop di world.
+  - **Audio & Visual Feedback**: Pemutaran suara SFX dan efek partikel VFX saat item dipungut.
 
 ### 4. Sistem Cutscene & Cerita
 - **In-Game Cutscene Manager**: Pengatur alur rekaman *cinematic* dan transisi alur permainan.
