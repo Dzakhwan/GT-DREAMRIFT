@@ -70,16 +70,40 @@ Game ini mendukung **Unity New Input System** (Keyboard + Mouse untuk PC & Touch
 
 ## 🤖 CI/CD Pipeline & Game CI (GitHub Actions)
 
-Proyek ini dilengkapi dengan otomatisasi **CI/CD** menggunakan **GitHub Actions** dan **Game CI** untuk memunculkan Android Build APK secara otomatis pada setiap push ke branch `main` atau `develop`.
+Proyek ini dilengkapi dengan otomatisasi **CI/CD** menggunakan **GitHub Actions** dan **Game CI** (`game-ci/unity-builder@v4`) untuk mengompilasi **Android Build APK** secara otomatis pada setiap `git push` ke branch `main` atau `develop`.
 
-File alur kerja berada pada: [`.github/workflows/android-build.yml`](file:///.github/workflows/android-build.yml)
+File konfigurasi workflow: [`.github/workflows/android-build.yml`](.github/workflows/android-build.yml)
 
-### Fitur Automated Pipeline:
-- **Game CI Unity Builder (`game-ci/unity-builder@v4`)**: Kompilasi otomatis untuk target platform **Android** (Unity `6000.3.14f1`).
-- **Swap Space Memory Management**: Menambahkan Virtual RAM 10GB pada Runner Ubuntu agar tidak terjadi out-of-memory saat kompilasi shader & asset.
-- **Android Signing Keystore**: Dukungan penandatanganan release APK via Base64 secret.
-- **Automated Artifact Upload**: File APK terenkapsulasi tersimpan langsung sebagai Artifact di GitHub Actions.
-- **Discord Webhook Notifications**: Notifikasi otomatis (Success/Failure) dikirim langsung ke channel Discord tim dev.
+### 🛠️ Fitur Automated Pipeline:
+1. **Headless Unity Builder (`game-ci/unity-builder@v4`)**: Kompilasi otomatis proyek ke target platform **Android** menggunakan Unity 6 (`6000.3.14f1`).
+2. **Swap Space Virtual Memory (10GB)**: Menambahkan Virtual RAM 10GB pada Runner Ubuntu Linux agar tidak terjadi *out-of-memory* saat kompilasi shader & asset 3D berat.
+3. **Signed Android Release Build**: Pengisian otomatis Android Keystore & Key Alias via Base64 secret sehingga menghasilkan APK terenkapsulasi yang valid.
+4. **Automated Artifact Upload**: File APK terenkapsulasi tersimpan langsung sebagai Artifact di tab GitHub Actions.
+5. **Discord Webhook Notifications**: Notifikasi status build (*Success/Failure*) dikirimkan otomatis ke channel Discord tim dev.
+
+---
+
+### 🔑 Konfigurasi GitHub Repository Secrets
+Untuk mengaktifkan pipeline Game CI di repositori Anda, daftarkan secret berikut pada menu **`Settings > Secrets and variables > Actions`**:
+
+| Secret Name | Deskripsi & Nilai |
+| :--- | :--- |
+| **`UNITY_LICENSE`** | Teks XML Lisensi Unity (`.ulf`) atau serial number lisensi Unity Anda. |
+| **`UNITY_EMAIL`** | Email terdaftar akun Unity Anda. |
+| **`UNITY_PASSWORD`** | Password terdaftar akun Unity Anda. |
+| **`ANDROID_KEYSTORE_BASE64`** | Teks Base64 dari file `user.keystore` (dihasilkan via `[Convert]::ToBase64String`). |
+| **`ANDROID_KEYSTORE_PASS`** | Password file `user.keystore` Anda. |
+| **`ANDROID_KEYALIAS_NAME`** | Nama Key Alias persis (misal: `df` / `release_key`). |
+| **`ANDROID_KEYALIAS_PASS`** | Password Key Alias Anda. |
+| **`DISCORD_WEBHOOK`** | *(Opsional)* Webhook URL Discord untuk notifikasi build otomatis. |
+
+---
+
+### 📦 Cara Mengunduh Hasil Build APK:
+1. Buka repositori GitHub $\rightarrow$ Klik tab **`Actions`**.
+2. Pilih workflow run terbaru pada bagian **Android Build 🤖**.
+3. Scroll ke bagian paling bawah ke panel **`Artifacts`**.
+4. Klik **`Build-Android`** untuk mendownload file `.zip` berisi APK game yang siap di-install di smartphone Android!
 
 ---
 
