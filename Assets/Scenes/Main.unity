@@ -6331,6 +6331,8 @@ MonoBehaviour:
   BottomClamp: -30
   CameraAngleOverride: 0
   LockCameraPosition: 0
+  lockPitchAngle: 1
+  fixedPitchAngle: 45
   _isAttacking: 0
   _lockRotation: 0
 --- !u!143 &4416926082789648333
