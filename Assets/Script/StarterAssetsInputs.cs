@@ -122,7 +122,12 @@ namespace StarterAssets
 
 		public void OnFire(InputValue value)
 		{
-			FireInput(value.isPressed);
+			// Di mobile/Android, OnFire dari touch screen diabaikan.
+			// Serangan mobile HANYA dipicu dari Tombol UI (VirtualFireInput / Attack Button).
+			if (!Application.isMobilePlatform)
+			{
+				FireInput(value.isPressed);
+			}
 		}
 #endif
 

@@ -27,7 +27,7 @@ namespace GTDreamrift.EditorTools
         public static void ShowWindow()
         {
             TerrainCropperWindow window = GetWindow<TerrainCropperWindow>("Terrain Cropper");
-            window.minSize = new Vector2(350, 500);
+            window.minSize = new Vector2(350, 520);
             window.Show();
         }
 
@@ -67,7 +67,7 @@ namespace GTDreamrift.EditorTools
             EditorGUILayout.Space(10);
             GUILayout.Label("Terrain & GameObject Cropper", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "Tool ini memungkinkan Anda memotong (crop) atau membagi (split) Terrain beserta GameObject dekorasi di atasnya dengan Interactive Handles di Scene View.",
+                "Tool ini memungkinkan Anda memotong (crop) atau membagi (split) Terrain beserta GameObject dekorasi di atasnya secara interaktif.",
                 MessageType.Info);
 
             EditorGUILayout.Space(10);
@@ -146,6 +146,7 @@ namespace GTDreamrift.EditorTools
             if (includeGameObjects)
             {
                 objectHandlingMode = (GameObjectHandlingMode)EditorGUILayout.EnumPopup("Outside Objects Action", objectHandlingMode);
+                EditorGUILayout.HelpBox("Catatan: Elemen UI / Canvas terlindungi secara otomatis dan tidak akan di-disable/dihapus.", MessageType.None);
             }
 
             EditorGUILayout.Space(5);
@@ -240,7 +241,7 @@ namespace GTDreamrift.EditorTools
             float maxX = tPos.x + tSize.x * normalizedCropRect.xMax;
             float minZ = tPos.z + tSize.z * normalizedCropRect.y;
             float maxZ = tPos.z + tSize.z * normalizedCropRect.yMax;
-            float yPos = tPos.y + 0.5f; // slightly above terrain base
+            float yPos = tPos.y + 0.5f;
 
             Vector3 cornerSW = new Vector3(minX, yPos, minZ);
             Vector3 cornerSE = new Vector3(maxX, yPos, minZ);

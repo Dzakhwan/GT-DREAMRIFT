@@ -136,7 +136,7 @@ namespace GTDreamrift.EditorTools
             newTerrainGO.transform.position = newTerrainPos;
             newTerrainGO.name = $"Cropped_{sourceTerrain.name}";
 
-            // 5. Handle Scene GameObjects (Props, Rocks, Buildings)
+            // 5. Handle Scene GameObjects (Props, Rocks, Buildings) - Excluding UI/Canvas
             if (includeGameObjects)
             {
                 ProcessGameObjects(sourceTerrain, newTerrainGO, normalizedBounds, objectHandlingMode);
@@ -216,9 +216,8 @@ namespace GTDreamrift.EditorTools
 
         private static int GetValidHeightmapResolution(int currentRes)
         {
-            // Unity heightmaps must be 2^n + 1 (33, 65, 129, 257, 513, 1025, 2049)
             int power = Mathf.RoundToInt(Mathf.Log(currentRes - 1, 2));
-            power = Mathf.Clamp(power, 5, 11); // between 33 and 2049
+            power = Mathf.Clamp(power, 5, 11);
             return (1 << power) + 1;
         }
 
@@ -308,6 +307,24 @@ namespace GTDreamrift.EditorTools
             return result;
         }
 
+        private static bool IsCanvasOrUI(Transform t)
+        {
+            if (t == null) return false;
+            if (t.GetComponent<Canvas>() != null) return true;
+            if (t.GetComponent<RectTransform>() != null) return true;
+            if (t.GetComponentInParent<Canvas>(true) != null) return true;
+            if (t.GetComponentInParent<CanvasGroup>(true) != null) return true;
+
+            Transform curr = t.parent;
+            while (curr != null)
+            {
+                if (curr.GetComponent<Canvas>() != null || curr.name.ToLower().Contains("canvas"))
+                    return true;
+                curr = curr.parent;
+            }
+            return false;
+        }
+
         private static void ProcessGameObjects(
             Terrain sourceTerrain,
             GameObject newTerrainGO,
@@ -322,14 +339,11 @@ namespace GTDreamrift.EditorTools
             float cropZMin = srcPos.z + srcSize.z * normalizedBounds.y;
             float cropZMax = srcPos.z + srcSize.z * normalizedBounds.yMax;
 
-            // Full bounds of source terrain to identify related objects
+            // Full bounds of source terrain to identify candidate objects
             float srcXMin = srcPos.x;
             float srcXMax = srcPos.x + srcSize.x;
             float srcZMin = srcPos.z;
             float srcZMax = srcPos.z + srcSize.z;
-
-            GameObject propsGroup = new GameObject("Cropped_Props");
-            propsGroup.transform.SetParent(newTerrainGO.transform);
 
             Scene activeScene = SceneManager.GetActiveScene();
             GameObject[] rootObjects = activeScene.GetRootGameObjects();
@@ -340,10 +354,18 @@ namespace GTDreamrift.EditorTools
                 if (root == sourceTerrain.gameObject || root == newTerrainGO)
                     continue;
 
+                // Protect root object if it is a Canvas or UI hierarchy
+                if (IsCanvasOrUI(root.transform))
+                    continue;
+
                 Transform[] transforms = root.GetComponentsInChildren<Transform>(true);
                 foreach (var t in transforms)
                 {
                     if (t.gameObject == root && transforms.Length > 1) continue;
+
+                    // Protect any child object that lives under a Canvas parent or is a UI element
+                    if (IsCanvasOrUI(t))
+                        continue;
 
                     Vector3 p = t.position;
                     if (p.x >= srcXMin && p.x <= srcXMax && p.z >= srcZMin && p.z <= srcZMax)
@@ -362,7 +384,7 @@ namespace GTDreamrift.EditorTools
 
                 if (isInsideCropBox)
                 {
-                    Undo.SetTransformParent(obj.transform, propsGroup.transform, "Group Cropped GameObject");
+                    // Keep original hierarchy position! Do not reparent under cropped terrain.
                 }
                 else
                 {

@@ -111,10 +111,9 @@ public class PlayerFight : MonoBehaviour
     {
         bool attackPressed = false;
 
-        // Input dari StarterAssets (mobile joystick system)
+        // Input dari StarterAssets (Mobile UI Fire Button / Joystick)
         if (input != null && input.fire)
         {
-            // Cek apakah klik/sentuhan berada di atas UI element selain tombol attack
             if (IsPointerOverUI())
             {
                 input.fire = false;
@@ -124,8 +123,8 @@ public class PlayerFight : MonoBehaviour
             input.fire = false;
         }
 
-        // Fallback: mouse click kiri (untuk testing di Editor / PC) via New Input System
-        if (!attackPressed && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        // Klik Kiri Mouse (LMB) HANYA aktif pada PC / Windows / WebGL (bukan Mobile / Android)
+        if (!attackPressed && !Application.isMobilePlatform && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
         {
             if (IsPointerOverUI()) return;
             attackPressed = true;
