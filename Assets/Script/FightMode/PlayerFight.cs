@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 using StarterAssets;
 
 /// <summary>
@@ -110,20 +111,35 @@ public class PlayerFight : MonoBehaviour
     {
         bool attackPressed = false;
 
-        // Input dari StarterAssets (mobile joystick system)
+        // Input dari StarterAssets (Mobile UI Fire Button / Joystick)
         if (input != null && input.fire)
         {
+            if (IsPointerOverUI())
+            {
+                input.fire = false;
+                return;
+            }
             attackPressed = true;
             input.fire = false;
         }
 
-        // Fallback: mouse click kiri (untuk testing di Editor)
-        if (!attackPressed && Input.GetMouseButtonDown(0))
+        // Klik Kiri Mouse (LMB) HANYA aktif pada PC / Windows / WebGL (bukan Mobile / Android)
+        if (!attackPressed && !Application.isMobilePlatform && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            if (IsPointerOverUI()) return;
             attackPressed = true;
+        }
 
         if (!attackPressed) return;
 
         TryAttack();
+    }
+
+    private bool IsPointerOverUI()
+    {
+        if (UnityEngine.EventSystems.EventSystem.current == null) return false;
+
+        return UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
     }
 
     /// <summary>

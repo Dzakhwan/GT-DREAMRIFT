@@ -1,4 +1,4 @@
-name: Android Build 🤖
+name: WebGL Build 🤖
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
       - develop
 
 jobs:
-  buildForAndroid:
-    name: Build for Android
+  buildForWebGL:
+    name: Build for WebGL
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -20,40 +20,26 @@ jobs:
         uses: actions/cache@v3
         with:
           path: Library
-          key: Library-Android
+          key: Library-WebGL
           restore-keys: |
             Library-
 
-      # Tambahkan Virtual RAM (Swap) agar server tidak crash saat compile Android
-      - name: Add Swap Space
-        uses: pierotofy/set-swap-space@master
-        with:
-          swap-size-gb: 10
-
-      - name: Build Unity Android APK
+      - name: Build Unity WebGL
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          targetPlatform: Android
+          targetPlatform: WebGL
           unityVersion: 6000.3.14f1
           buildName: GT-Dreamrift
-          # Optional: 'androidPackage' for .apk or 'androidAppBundle' for .aab
-          androidExportType: androidPackage
-          # Optional: Keystore details for signed release build
-          androidKeystoreName: user.keystore
-          androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
-          androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
-          androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Build-Android
-          path: build/Android
+          name: Build-WebGL
+          path: build/WebGL
 
       # Notify Discord/Slack on Failure
       - name: Notify on Failure
@@ -61,7 +47,7 @@ jobs:
         run: |
           if [ -n "${{ secrets.DISCORD_WEBHOOK }}" ]; then
             curl -H "Content-Type: application/json" \
-                 -d "{\"content\": \"❌ Android Build Failed on branch ${{ github.ref_name }}!\"}" \
+                 -d "{\"content\": \"❌ WebGL Build Failed on branch ${{ github.ref_name }}!\"}" \
                  ${{ secrets.DISCORD_WEBHOOK }}
           else
             echo "DISCORD_WEBHOOK not set, skipping failure notification."
@@ -73,7 +59,7 @@ jobs:
         run: |
           if [ -n "${{ secrets.DISCORD_WEBHOOK }}" ]; then
             curl -H "Content-Type: application/json" \
-                 -d "{\"content\": \"✅ Android Build Succeeded on branch ${{ github.ref_name }}! Download the artifact from GitHub Actions.\"}" \
+                 -d "{\"content\": \"✅ WebGL Build Succeeded on branch ${{ github.ref_name }}! Download the artifact from GitHub Actions.\"}" \
                  ${{ secrets.DISCORD_WEBHOOK }}
           else
             echo "DISCORD_WEBHOOK not set, skipping success notification."

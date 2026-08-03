@@ -15,3 +15,10 @@ MonoBehaviour:
   questId: Quest_01_Tutorial
   displayName: Tungtor Test
   description: Awawawawawaaaaaaaaaaaaa
+  objectiveType: 3
+  targetNpcId: 
+  targetEnemyId: Slime
+  targetKillCount: 1
+  targetItem: {fileID: 0}
+  targetItemAmount: 1
+  rewards: []
