@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8e9fe2f5c0390c43b2cd3d340144973, type: 3}
   m_Name: New_Quest_20260803_000938
   m_EditorClassIdentifier: Assembly-CSharp::Dreamrift.QuestSystem.QuestData
-  questId: 
+  questId: New_Quest_20260803_000938
   displayName: New Quest
   description: 
   prerequisites: []
@@ -24,4 +24,4 @@ MonoBehaviour:
   targetItem: {fileID: 0}
   targetItemAmount: 1
   rewards: []
-  nodePosition: {x: 100, y: 100}
+  nodePosition: {x: 62, y: 69}

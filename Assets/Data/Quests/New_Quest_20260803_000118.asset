@@ -12,9 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8e9fe2f5c0390c43b2cd3d340144973, type: 3}
   m_Name: New_Quest_20260803_000118
   m_EditorClassIdentifier: Assembly-CSharp::Dreamrift.QuestSystem.QuestData
-  questId: 
+  questId: New_Quest_20260803_000118
   displayName: New Quest
   description: 
+  prerequisites: []
+  nextQuestsOnComplete: []
   objectiveType: 1
   targetNpcId: 
   targetEnemyId: Slime
@@ -22,3 +24,4 @@ MonoBehaviour:
   targetItem: {fileID: 0}
   targetItemAmount: 1
   rewards: []
+  nodePosition: {x: 157, y: 303}

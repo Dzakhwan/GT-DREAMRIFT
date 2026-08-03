@@ -5,11 +5,15 @@ using UnityEngine.SceneManagement;
 
 public class CutsceneManager : MonoBehaviour
 {
-    [Header("Cutscene Settings")]
-    [Tooltip("Masukkan sprite/gambar urut dari awal sampai akhir")]
+    [Header("Cutscene Data (Opsional)")]
+    [Tooltip("Data cutscene. Jika di-assign, data gambar & durasi akan diambil dari sini.")]
+    public CutsceneData cutsceneData;
+
+    [Header("Fallback Cutscene Settings")]
+    [Tooltip("Masukkan sprite/gambar urut dari awal sampai akhir (hanya digunakan jika cutsceneData kosong)")]
     public Sprite[] cutsceneImages;
     
-    [Tooltip("Waktu tiap gambar tampil (dalam detik)")]
+    [Tooltip("Waktu tiap gambar tampil dalam detik (hanya digunakan jika cutsceneData kosong)")]
     public float timePerImage = 3f;
     
     [Tooltip("Nama scene selanjutnya yang akan diload setelah cutscene selesai")]
@@ -19,16 +23,20 @@ public class CutsceneManager : MonoBehaviour
     [Tooltip("Masukkan komponen UI Image yang akan menampilkan gambar")]
     public Image displayImage;
 
+    [Header("Audio Reference")]
+    [Tooltip("AudioSource untuk memutar BGM / SFX (opsional)")]
+    public AudioSource audioSource;
+
     private int currentIndex = 0;
 
     void Start()
     {
-        // Pastikan array gambar tidak kosong dan displayImage sudah di-assign
-        if (cutsceneImages.Length > 0 && displayImage != null)
+        Sprite[] activeFrames = GetActiveFrames();
+
+        if (activeFrames != null && activeFrames.Length > 0 && displayImage != null)
         {
-            // Tampilkan gambar pertama
-            displayImage.sprite = cutsceneImages[0];
-            // Mulai proses pergantian gambar
+            displayImage.sprite = activeFrames[0];
+            PlayAudioForFrame(0);
             StartCoroutine(PlayCutscene());
         }
         else
@@ -39,33 +47,72 @@ public class CutsceneManager : MonoBehaviour
 
     IEnumerator PlayCutscene()
     {
-        // Tunggu selama waktu yang ditentukan
-        yield return new WaitForSeconds(timePerImage);
+        float duration = GetDurationForCurrentFrame();
+        yield return new WaitForSeconds(duration);
 
-        // Lanjut ke index gambar berikutnya
         currentIndex++;
+        Sprite[] activeFrames = GetActiveFrames();
 
-        // Jika masih ada gambar yang tersisa
-        if (currentIndex < cutsceneImages.Length)
+        if (activeFrames != null && currentIndex < activeFrames.Length)
         {
-            // Ganti sprite ke gambar berikutnya
-            displayImage.sprite = cutsceneImages[currentIndex];
-            // Ulangi proses menunggu
+            displayImage.sprite = activeFrames[currentIndex];
+            PlayAudioForFrame(currentIndex);
             StartCoroutine(PlayCutscene());
         }
         else
         {
-            // Jika gambar sudah habis, load scene selanjutnya
             LoadNextScene();
+        }
+    }
+
+    private Sprite[] GetActiveFrames()
+    {
+        if (cutsceneData != null && cutsceneData.frames != null && cutsceneData.frames.Length > 0)
+        {
+            return cutsceneData.frames;
+        }
+        return cutsceneImages;
+    }
+
+    private float GetDurationForCurrentFrame()
+    {
+        if (cutsceneData != null)
+        {
+            return cutsceneData.GetFrameDuration(currentIndex);
+        }
+        return timePerImage > 0f ? timePerImage : 3f;
+    }
+
+    private void PlayAudioForFrame(int index)
+    {
+        if (cutsceneData == null || audioSource == null) return;
+
+        // BGM di frame awal
+        if (index == 0 && cutsceneData.bgmClip != null)
+        {
+            audioSource.clip = cutsceneData.bgmClip;
+            audioSource.volume = cutsceneData.bgmVolume;
+            audioSource.loop = true;
+            audioSource.Play();
+        }
+
+        // SFX per frame
+        AudioClip sfx = cutsceneData.GetFrameSFX(index);
+        if (sfx != null)
+        {
+            audioSource.PlayOneShot(sfx, cutsceneData.sfxVolume);
         }
     }
 
     void LoadNextScene()
     {
-        if (!string.IsNullOrEmpty(nextSceneName))
+        string targetScene = (cutsceneData != null && !string.IsNullOrEmpty(cutsceneData.loadSceneAfter)) 
+            ? cutsceneData.loadSceneAfter 
+            : nextSceneName;
+
+        if (!string.IsNullOrEmpty(targetScene))
         {
-            // Load scene berdasarkan nama
-            SceneManager.LoadScene(nextSceneName);
+            SceneManager.LoadScene(targetScene);
         }
         else
         {

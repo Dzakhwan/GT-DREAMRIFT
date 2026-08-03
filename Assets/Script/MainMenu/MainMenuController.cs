@@ -28,9 +28,24 @@ public class MainMenuController : MonoBehaviour
     // Drag GameObject 'Canvas' utama Main Menu ke sini (yang isinya semua UI menu)
     public GameObject mainMenuCanvas;
 
+    [Header("Cutscene Settings")]
+    [Tooltip("Data cutscene yang diputar saat klik New Game sebelum masuk Level 1")]
+    public CutsceneData introCutscene;
+
+    [Tooltip("Jika true, cutscene intro hanya diputar 1x saja seumur hidup. Di penekanan berikutnya akan langsung ke Level 1")]
+    public bool playOnceOnly = false;
+
+    private bool isStartingGame = false;
+
     // Fungsi ini dipanggil saat tombol NEW GAME diklik
     public void PlayGame()
     {
+        // Proteksi Anti-Spam Click (Hanya bisa diklik 1x)
+        if (isStartingGame) return;
+        isStartingGame = true;
+
+        SetMainMenuInteractable(false);
+
         // Environment (misal CutScene1) yang sudah dimuat di belakang, sekarang diaktifkan penuh
         // dan dilanjutkan animasinya (bukan diulang dari awal)
         if (environmentLoader != null)
@@ -38,10 +53,44 @@ public class MainMenuController : MonoBehaviour
             environmentLoader.ActivateLoadedEnvironment();
         }
 
-        // Sembunyikan seluruh UI Main Menu (Canvas beserta semua isinya)
-        if (mainMenuCanvas != null)
+        // Cek apakah cutscene perlu diputar (atau skip jika playOnceOnly & sudah pernah nonton)
+        bool hasSeenIntro = PlayerPrefs.GetInt("HasSeenIntroCutscene", 0) == 1;
+
+        if (introCutscene != null && (!playOnceOnly || !hasSeenIntro))
         {
-            mainMenuCanvas.SetActive(false);
+            // Tandai sudah pernah nonton
+            if (playOnceOnly)
+            {
+                PlayerPrefs.SetInt("HasSeenIntroCutscene", 1);
+                PlayerPrefs.Save();
+            }
+
+            // Sembunyikan seluruh UI Main Menu (Canvas beserta semua isinya)
+            if (mainMenuCanvas != null)
+            {
+                mainMenuCanvas.SetActive(false);
+            }
+
+            // Putar Cutscene (CutsceneData akan otomatis loadSceneAfter saat selesai)
+            InGameCutsceneManager.Instance.PlayCutscene(introCutscene);
+        }
+        else
+        {
+            // Sembunyikan seluruh UI Main Menu
+            if (mainMenuCanvas != null)
+            {
+                mainMenuCanvas.SetActive(false);
+            }
+
+            // Langsung load Level 1 jika tidak ada cutscene / sudah pernah diputar
+            if (LoadingManager.Instance != null && level1Scene != null)
+            {
+                LoadingManager.Instance.LoadLevel(level1Scene);
+            }
+            else if (level1Scene != null)
+            {
+                UnityEngine.SceneManagement.SceneManager.LoadScene(level1Scene);
+            }
         }
     }
 
