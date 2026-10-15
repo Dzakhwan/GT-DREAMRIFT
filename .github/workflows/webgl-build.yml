@@ -1,0 +1,66 @@
+name: WebGL Build 🤖
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  buildForWebGL:
+    name: Build for WebGL
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Unity Library
+        uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-WebGL
+          restore-keys: |
+            Library-
+
+      - name: Build Unity WebGL
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: WebGL
+          unityVersion: 6000.3.14f1
+          buildName: GT-Dreamrift
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build-WebGL
+          path: build/WebGL
+
+      # Notify Discord/Slack on Failure
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          if [ -n "${{ secrets.DISCORD_WEBHOOK }}" ]; then
+            curl -H "Content-Type: application/json" \
+                 -d "{\"content\": \"❌ WebGL Build Failed on branch ${{ github.ref_name }}!\"}" \
+                 ${{ secrets.DISCORD_WEBHOOK }}
+          else
+            echo "DISCORD_WEBHOOK not set, skipping failure notification."
+          fi
+
+      # Notify Discord/Slack on Success
+      - name: Notify on Success
+        if: success()
+        run: |
+          if [ -n "${{ secrets.DISCORD_WEBHOOK }}" ]; then
+            curl -H "Content-Type: application/json" \
+                 -d "{\"content\": \"✅ WebGL Build Succeeded on branch ${{ github.ref_name }}! Download the artifact from GitHub Actions.\"}" \
+                 ${{ secrets.DISCORD_WEBHOOK }}
+          else
+            echo "DISCORD_WEBHOOK not set, skipping success notification."
+          fi

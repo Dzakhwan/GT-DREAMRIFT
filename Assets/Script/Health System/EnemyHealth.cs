@@ -121,14 +121,25 @@ public class EnemyHealth : MonoBehaviour, IDamageable
 
     // ===================== PRIVATE METHODS =====================
 
+    [Header("Quest Integration")]
+    [Tooltip("ID/Nama Tipe Musuh untuk sistem Quest (misal: Slime, Goblin, Boss)")]
+    [SerializeField] private string enemyId = "Slime";
+
+    public string EnemyId => enemyId;
+
     private void Die()
     {
         if (isDead) return;
         isDead = true;
 
-        Debug.Log($"[Enemy] {gameObject.name} mati!");
+        Debug.Log($"[Enemy] {gameObject.name} (enemyId: {enemyId}) mati!");
         onDeath?.Invoke();
         OnDeath?.Invoke();
+
+        if (Dreamrift.QuestSystem.QuestManager.Instance != null)
+        {
+            Dreamrift.QuestSystem.QuestManager.Instance.RecordEnemyKill(enemyId);
+        }
 
         // Kembalikan health bar ke pool
         if (usePooledHealthBar && EnemyHealthBarPool.Instance != null)

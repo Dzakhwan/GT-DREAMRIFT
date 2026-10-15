@@ -38,6 +38,10 @@ namespace Dreamrift.QuestSystem
         [SerializeField] private bool triggerOnEnter = false;
         [SerializeField] private string playerTag = "Player";
 
+        [Header("NPC Talk Quest Integration")]
+        [Tooltip("Isi ID NPC jika interaksi ini merupakan quest 'Bicara dengan NPC' (misal: Elder, Blacksmith)")]
+        [SerializeField] private string npcId = "";
+
         [Header("Events")]
         [SerializeField] private UnityEvent onQuestActionTriggered;
 
@@ -93,6 +97,11 @@ namespace Dreamrift.QuestSystem
                     LogAssignedQuestState();
                     success = true;
                     break;
+            }
+
+            if (!string.IsNullOrWhiteSpace(npcId))
+            {
+                QuestManager.Instance.RecordNpcTalk(npcId);
             }
 
             if (success)

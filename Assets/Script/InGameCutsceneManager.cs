@@ -3,20 +3,13 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
+using UnityEngine.Video;
 using TMPro;
 
 /// <summary>
 /// Singleton Manager untuk cutscene overlay in-game.
 /// Pasang script ini ke satu GameObject di scene (misalnya "CutsceneCanvas").
 /// Canvas/Panel cutscene akan overlay di atas gameplay tanpa ganti scene.
-/// 
-/// Setup di Hierarchy:
-///   [CutsceneCanvas] ← pasang script ini
-///     ├── [CutscenePanel]     ← panel background (Image hitam)
-///     │     ├── [FrameImage]  ← Image untuk menampilkan gambar cutscene
-///     │     ├── [TitleText]   ← TextMeshPro untuk judul (opsional)
-///     │     ├── [NextButton]  ← Tombol "Lanjut" (mode manual)
-///     │     └── [SkipButton]  ← Tombol "Skip"
 /// </summary>
 public class InGameCutsceneManager : MonoBehaviour
 {
@@ -30,6 +23,12 @@ public class InGameCutsceneManager : MonoBehaviour
 
     [Tooltip("Image komponen untuk menampilkan frame gambar cutscene")]
     [SerializeField] private Image frameImage;
+
+    [Tooltip("RawImage komponen untuk menampilkan video cutscene (opsional, mode Video)")]
+    [SerializeField] private RawImage videoRawImage;
+
+    [Tooltip("VideoPlayer untuk memutar video cutscene (opsional, mode Video)")]
+    [SerializeField] private VideoPlayer videoPlayer;
 
     [Tooltip("(Opsional) TextMeshPro untuk judul cutscene")]
     [SerializeField] private TextMeshProUGUI titleText;
@@ -47,6 +46,9 @@ public class InGameCutsceneManager : MonoBehaviour
     [Header("Audio")]
     [Tooltip("AudioSource untuk memutar BGM cutscene")]
     [SerializeField] private AudioSource audioSource;
+
+    [Tooltip("AudioSource khusus untuk memutar SFX cutscene (opsional, fallback ke audioSource utama)")]
+    [SerializeField] private AudioSource sfxAudioSource;
 
     // ── Events ─────────────────────────────────────────────────────────────
     [Header("Events")]
@@ -90,22 +92,36 @@ public class InGameCutsceneManager : MonoBehaviour
             skipButton.onClick.AddListener(OnSkipPressed);
     }
 
+    private void Update()
+    {
+        if (!isPlaying || !waitingForNext) return;
+
+        // Deteksi klik mouse kiri / sentuhan layar / tombol Space & Enter
+        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
+        {
+            // Abaikan jika klik berada tepat di atas tombol Skip
+            if (UnityEngine.EventSystems.EventSystem.current != null &&
+                skipButton != null &&
+                UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject == skipButton.gameObject)
+            {
+                return;
+            }
+
+            OnNextPressed();
+        }
+    }
+
     // ══════════════════════════════════════════════════════════════════════
     // Public API
     // ══════════════════════════════════════════════════════════════════════
 
     /// <summary>
     /// Mulai memutar cutscene berdasarkan CutsceneData yang diberikan.
-    /// Panggil dari CutsceneTrigger.OnInteract() atau event apapun.
+    /// Panggil dari CutsceneTriggerHandler.OnInteract() atau event apapun.
     /// </summary>
     public void PlayCutscene(CutsceneData data)
     {
         if (isPlaying || data == null) return;
-        if (data.frames == null || data.frames.Length == 0)
-        {
-            Debug.LogWarning("InGameCutsceneManager: CutsceneData tidak punya frame gambar!");
-            return;
-        }
 
         currentData = data;
         currentFrameIndex = 0;
@@ -122,51 +138,107 @@ public class InGameCutsceneManager : MonoBehaviour
         if (titleText != null)
             titleText.text = string.IsNullOrEmpty(data.cutsceneTitle) ? "" : data.cutsceneTitle;
 
-        // Tampilkan/sembunyikan tombol Next sesuai mode
+        // Sembunyikan tombol Next jika ada, karena layar bisa diklik langsung untuk next
         if (nextButton != null)
-            nextButton.gameObject.SetActive(data.manualAdvance);
+            nextButton.gameObject.SetActive(false);
+
+        if (skipButton != null)
+            skipButton.gameObject.SetActive(data.allowSkip);
 
         // Putar BGM
         PlayBGM(data);
 
-        // Mulai coroutine
-        playRoutine = StartCoroutine(PlaySequence());
+        // Cek tipe media
+        if (data.cutsceneType == CutsceneType.Video)
+        {
+            playRoutine = StartCoroutine(PlayVideoSequence());
+        }
+        else
+        {
+            if (data.frames == null || data.frames.Length == 0)
+            {
+                Debug.LogWarning("InGameCutsceneManager: CutsceneData tidak punya frame gambar!");
+                FinishCutscene();
+                return;
+            }
+            playRoutine = StartCoroutine(PlayImageSequence());
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
     // Coroutine Utama
     // ══════════════════════════════════════════════════════════════════════
 
-    private IEnumerator PlaySequence()
+    private IEnumerator PlayImageSequence()
     {
+        if (videoRawImage != null) videoRawImage.gameObject.SetActive(false);
+        if (frameImage != null) frameImage.gameObject.SetActive(true);
+
         // Tampilkan frame pertama
         yield return StartCoroutine(ShowFrame(currentData.frames[currentFrameIndex]));
+        PlayFrameSFX(currentFrameIndex);
 
         while (currentFrameIndex < currentData.frames.Length)
         {
+            waitingForNext = true;
+
             if (currentData.manualAdvance)
             {
-                // Tunggu player klik Next
-                waitingForNext = true;
+                // Tunggu player klik layar / Next
                 yield return new WaitUntil(() => !waitingForNext);
             }
             else
             {
-                // Tunggu durasi frame (pakai WaitForSecondsRealtime agar tidak terpengaruh timeScale=0)
-                yield return new WaitForSecondsRealtime(currentData.timePerFrame);
+                // Tunggu durasi frame spesifik atau sampai player klik layar
+                float frameDuration = currentData.GetFrameDuration(currentFrameIndex);
+                float timer = 0f;
+
+                while (timer < frameDuration && waitingForNext)
+                {
+                    timer += Time.unscaledDeltaTime;
+                    yield return null;
+                }
             }
 
             currentFrameIndex++;
 
             if (currentFrameIndex < currentData.frames.Length)
             {
-                // Fade ke frame berikutnya
+                // Fade ke frame berikutnya & putar SFX frame baru
                 yield return StartCoroutine(CrossfadeToFrame(currentData.frames[currentFrameIndex]));
+                PlayFrameSFX(currentFrameIndex);
             }
         }
 
         // Semua frame selesai
-        yield return StartCoroutine(FadeOut());
+        yield return StartCoroutine(FadeOutFrameImage());
+        FinishCutscene();
+    }
+
+    private IEnumerator PlayVideoSequence()
+    {
+        if (frameImage != null) frameImage.gameObject.SetActive(false);
+        if (videoRawImage != null) videoRawImage.gameObject.SetActive(true);
+
+        if (videoPlayer == null || currentData.videoClip == null)
+        {
+            Debug.LogWarning("InGameCutsceneManager: VideoPlayer atau VideoClip belum di-assign!");
+            yield return new WaitForSecondsRealtime(1f);
+            FinishCutscene();
+            yield break;
+        }
+
+        videoPlayer.clip = currentData.videoClip;
+        videoPlayer.isLooping = false;
+        videoPlayer.Play();
+
+        // Tunggu video selesai diputar
+        while (videoPlayer.isPlaying || videoPlayer.time < videoPlayer.length - 0.1f)
+        {
+            yield return null;
+        }
+
+        videoPlayer.Stop();
         FinishCutscene();
     }
 
@@ -176,7 +248,6 @@ public class InGameCutsceneManager : MonoBehaviour
 
     private void OnNextPressed()
     {
-        // Sinyal bahwa player sudah klik Next
         waitingForNext = false;
     }
 
@@ -184,7 +255,6 @@ public class InGameCutsceneManager : MonoBehaviour
     {
         if (!isPlaying) return;
 
-        // Hentikan coroutine yang sedang berjalan
         if (playRoutine != null)
             StopCoroutine(playRoutine);
 
@@ -194,7 +264,12 @@ public class InGameCutsceneManager : MonoBehaviour
 
     private IEnumerator SkipSequence()
     {
-        yield return StartCoroutine(FadeOut());
+        if (videoPlayer != null && videoPlayer.isPlaying)
+        {
+            videoPlayer.Stop();
+        }
+
+        yield return StartCoroutine(FadeOutFrameImage());
         FinishCutscene();
     }
 
@@ -202,9 +277,6 @@ public class InGameCutsceneManager : MonoBehaviour
     // Helper: Frame Display & Fading
     // ══════════════════════════════════════════════════════════════════════
 
-    /// <summary>
-    /// Langsung tampilkan frame tanpa transisi (untuk frame pertama).
-    /// </summary>
     private IEnumerator ShowFrame(Sprite sprite)
     {
         if (frameImage == null) yield break;
@@ -213,9 +285,6 @@ public class InGameCutsceneManager : MonoBehaviour
         yield return StartCoroutine(FadeImage(frameImage, 0f, 1f));
     }
 
-    /// <summary>
-    /// Fade out frame saat ini, ganti sprite, fade in frame baru.
-    /// </summary>
     private IEnumerator CrossfadeToFrame(Sprite nextSprite)
     {
         if (frameImage == null) yield break;
@@ -225,19 +294,12 @@ public class InGameCutsceneManager : MonoBehaviour
         yield return StartCoroutine(FadeImage(frameImage, 0f, 1f));
     }
 
-    /// <summary>
-    /// Fade out seluruh frame (akhir cutscene).
-    /// </summary>
-    private IEnumerator FadeOut()
+    private IEnumerator FadeOutFrameImage()
     {
-        if (frameImage == null) yield break;
+        if (frameImage == null || !frameImage.gameObject.activeInHierarchy) yield break;
         yield return StartCoroutine(FadeImage(frameImage, 1f, 0f));
     }
 
-    /// <summary>
-    /// Animasi alpha dari startAlpha ke endAlpha pada Image target.
-    /// Menggunakan WaitForSecondsRealtime agar berjalan meski timeScale = 0.
-    /// </summary>
     private IEnumerator FadeImage(Image target, float startAlpha, float endAlpha)
     {
         float elapsed = 0f;
@@ -257,7 +319,7 @@ public class InGameCutsceneManager : MonoBehaviour
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // Helper: Audio
+    // Helper: Audio & SFX
     // ══════════════════════════════════════════════════════════════════════
 
     private void PlayBGM(CutsceneData data)
@@ -270,10 +332,30 @@ public class InGameCutsceneManager : MonoBehaviour
         audioSource.Play();
     }
 
-    private void StopBGM()
+    private void PlayFrameSFX(int frameIndex)
+    {
+        if (currentData == null) return;
+        AudioClip sfx = currentData.GetFrameSFX(frameIndex);
+        if (sfx == null) return;
+
+        float vol = currentData.sfxVolume;
+        if (sfxAudioSource != null)
+        {
+            sfxAudioSource.PlayOneShot(sfx, vol);
+        }
+        else if (audioSource != null)
+        {
+            audioSource.PlayOneShot(sfx, vol);
+        }
+    }
+
+    private void StopAudio()
     {
         if (audioSource != null && audioSource.isPlaying)
             audioSource.Stop();
+
+        if (sfxAudioSource != null && sfxAudioSource.isPlaying)
+            sfxAudioSource.Stop();
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -284,7 +366,12 @@ public class InGameCutsceneManager : MonoBehaviour
     {
         isPlaying = false;
         cutscenePanel?.SetActive(false);
-        StopBGM();
+        StopAudio();
+
+        if (videoPlayer != null && videoPlayer.isPlaying)
+        {
+            videoPlayer.Stop();
+        }
 
         // Kembalikan timeScale
         if (currentData != null && currentData.pauseGameDuringCutscene)
@@ -296,7 +383,7 @@ public class InGameCutsceneManager : MonoBehaviour
         // Load scene jika dikonfigurasi
         if (currentData != null && !string.IsNullOrEmpty(currentData.loadSceneAfter))
         {
-            Time.timeScale = 1f; // pastikan normal sebelum load
+            Time.timeScale = 1f;
             SceneManager.LoadScene(currentData.loadSceneAfter);
         }
 

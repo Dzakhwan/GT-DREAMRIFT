@@ -26,6 +26,10 @@ namespace Dreamrift.InventorySystem
         [SerializeField] private string playerTag = "Player";
         [SerializeField] private InventoryManager inventoryManager;
 
+        [Header("Audio & Visual Feedback")]
+        [SerializeField] private AudioClip pickupSFX;
+        [SerializeField] private GameObject pickupVFXPrefab;
+
         [Header("Events")]
         [SerializeField] private UnityEvent onPickedUp;
         [SerializeField] private UnityEvent onInventoryFull;
@@ -102,6 +106,16 @@ namespace Dreamrift.InventorySystem
             {
                 pickupConsumed = true;
                 onPickedUp?.Invoke();
+
+                if (pickupSFX != null)
+                {
+                    AudioSource.PlayClipAtPoint(pickupSFX, transform.position);
+                }
+
+                if (pickupVFXPrefab != null)
+                {
+                    Instantiate(pickupVFXPrefab, transform.position, Quaternion.identity);
+                }
 
                 if (destroyWhenPickedUp)
                 {
