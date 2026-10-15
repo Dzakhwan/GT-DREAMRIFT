@@ -6311,6 +6311,7 @@ MonoBehaviour:
   CameraAngleOverride: 0
   LockCameraPosition: 0
   _isAttacking: 0
+  _lockRotation: 0
 --- !u!143 &4416926082789648333
 CharacterController:
   m_ObjectHideFlags: 0
@@ -6960,6 +6961,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerFight
   maxComboSteps: 3
   comboWindowDuration: 2.05
+  preAttackDelay: 0.15
   baseDamage: 20
   comboDamageMultipliers:
   - 1
