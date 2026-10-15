@@ -316,8 +316,6 @@ namespace StarterAssets
             if (_hasAnimator && _lockRotation)
             {
                 Vector3 animatorDelta = _animator.deltaPosition;
-                Debug.Log($"[TPC] OnAnimatorMove → Grounded={Grounded}, deltaPos={animatorDelta}, _lockRotation={_lockRotation}");
-
                 if (Grounded)
                 {
                     Vector3 rootMotionVelocity = new Vector3(animatorDelta.x, 0, animatorDelta.z) / Time.deltaTime;
@@ -330,6 +328,11 @@ namespace StarterAssets
 
         private void JumpAndGravity()
         {
+            if (_isAttacking)
+            {
+                _input.jump = false;
+            }
+
             if (Grounded)
             {
                 // reset the fall timeout timer
