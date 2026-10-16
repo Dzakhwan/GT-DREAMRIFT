@@ -74,6 +74,27 @@ public class EnemyHealth : MonoBehaviour, IDamageable
         currentHealth = maxHealth;
         UpdateHealthBar();
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
+
+        // Tampilkan health bar di atas kepala musuh sejak awal
+        StartCoroutine(InitHealthBarCoroutine());
+    }
+
+    private void OnDisable()
+    {
+        if (usePooledHealthBar && EnemyHealthBarPool.Instance != null)
+        {
+            EnemyHealthBarPool.Instance.HideHealthBar(transform);
+        }
+    }
+
+    private IEnumerator InitHealthBarCoroutine()
+    {
+        // Tunggu hingga frame berikutnya agar pool manager sudah selesai Awake/Start
+        yield return null;
+        if (usePooledHealthBar && EnemyHealthBarPool.Instance != null && !isDead)
+        {
+            EnemyHealthBarPool.Instance.ShowHealthBar(transform, currentHealth, maxHealth);
+        }
     }
 
     // ===================== IDamageable =====================

@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: NewSlimeDashAttack
   m_EditorClassIdentifier: Assembly-CSharp::SlimeDashAttackSO
   attackRange: 4.68
-  attackCooldown: 2
-  windUpTime: 0.7
-  recoveryTime: 1
-  dashSpeed: 18
+  attackCooldown: 3.2
+  windUpTime: 0.8
+  recoveryTime: 0.8
+  dashSpeed: 13
   dashDuration: 0.4
-  maxDashDistance: 7
+  maxDashDistance: 5.5
   damage: 15
   hitRadius: 1.2

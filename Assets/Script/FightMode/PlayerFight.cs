@@ -46,6 +46,9 @@ public class PlayerFight : MonoBehaviour
     [Tooltip("Titik pusat hitbox serangan. Jika kosong, pakai posisi Player.")]
     [SerializeField] private Transform attackOrigin;
 
+    [Tooltip("Waktu delay otomatis untuk eksekusi damage jika animasi tidak memicu Animation Event (fallback).")]
+    [SerializeField] private float autoDamageDelay = 0.28f;
+
     // ===================== MOBILE BUTTON =====================
     [Header("Mobile Input")]
     [Tooltip("Drag & Drop tombol Attack dari Canvas UI untuk mobile")]
@@ -64,6 +67,8 @@ public class PlayerFight : MonoBehaviour
     private bool isPreAttacking;
     private float preAttackTimer;
     private float attackFailsafeTimer;
+    private bool hasDealtDamageThisAttack = false;
+    private Coroutine autoDamageCoroutine;
 
     private static readonly int AttackAStateHash = Animator.StringToHash("Charged_Upward_Slash");
     private static readonly int AttackBStateHash = Animator.StringToHash("Armature_Sword_Regular_B");
@@ -236,6 +241,19 @@ public class PlayerFight : MonoBehaviour
                 animator.SetTrigger("Attack");
             }
         }
+
+        hasDealtDamageThisAttack = false;
+        if (autoDamageCoroutine != null) StopCoroutine(autoDamageCoroutine);
+        autoDamageCoroutine = StartCoroutine(AutoDamageFallbackRoutine());
+    }
+
+    private System.Collections.IEnumerator AutoDamageFallbackRoutine()
+    {
+        yield return new WaitForSeconds(autoDamageDelay);
+        if (isAttacking && !hasDealtDamageThisAttack)
+        {
+            DealDamage();
+        }
     }
 
     // ===================== ANIMATION EVENTS =====================
@@ -249,6 +267,15 @@ public class PlayerFight : MonoBehaviour
     /// </summary>
     public void DealDamage()
     {
+        if (hasDealtDamageThisAttack) return;
+        hasDealtDamageThisAttack = true;
+
+        if (autoDamageCoroutine != null)
+        {
+            StopCoroutine(autoDamageCoroutine);
+            autoDamageCoroutine = null;
+        }
+
         // Hitung damage final berdasarkan combo step saat ini
         int finalDamage = baseDamage;
         int comboIndex = Mathf.Clamp(attackIndex - 1, 0, comboDamageMultipliers.Length - 1);
@@ -256,31 +283,43 @@ public class PlayerFight : MonoBehaviour
 
         Debug.Log($"[PlayerFight] DealDamage dipanggil. Combo step {attackIndex}, damage: {finalDamage}");
 
+        Vector3 origin = (attackOrigin != null && attackOrigin != transform)
+            ? attackOrigin.position
+            : transform.position + transform.forward * 0.9f + Vector3.up * 0.6f;
+
         // Cari semua collider musuh dalam jangkauan hitbox
         Collider[] hits;
 
         if (useTagInstead)
         {
             // Mode Tag: ambil semua collider lalu filter by tag
-            hits = Physics.OverlapSphere(attackOrigin.position, attackRange);
+            hits = Physics.OverlapSphere(origin, attackRange);
         }
         else
         {
-            // Mode Layer: langsung filter by layer (lebih efisien)
-            hits = Physics.OverlapSphere(attackOrigin.position, attackRange, enemyLayer);
+            int mask = enemyLayer.value != 0 ? enemyLayer.value : LayerMask.GetMask("Enemy");
+            if (mask == 0) mask = ~0;
+            // Mode Layer: langsung filter by layer
+            hits = Physics.OverlapSphere(origin, attackRange, mask);
         }
 
         bool hitAnything = false;
+        var damagedSet = new System.Collections.Generic.HashSet<IDamageable>();
+
         foreach (Collider hit in hits)
         {
             // Lewati diri sendiri
-            if (hit.gameObject == gameObject) continue;
+            if (hit.gameObject == gameObject || hit.transform.IsChildOf(transform)) continue;
 
             // Jika mode tag, filter di sini
             if (useTagInstead && !hit.CompareTag(enemyTag)) continue;
 
-            // Berikan damage jika objek implementasi IDamageable
-            if (hit.TryGetComponent(out IDamageable damageable))
+            // Berikan damage jika objek implementasi IDamageable (cek di collider atau parent-nya)
+            IDamageable damageable = hit.GetComponentInParent<IDamageable>();
+            if (damageable == null)
+                damageable = hit.GetComponent<IDamageable>();
+
+            if (damageable != null && damagedSet.Add(damageable))
             {
                 damageable.TakeDamage(finalDamage);
                 Debug.Log($"[PlayerFight] Mengenai {hit.name} sebesar {finalDamage} damage!");
@@ -345,6 +384,13 @@ public class PlayerFight : MonoBehaviour
         attackFailsafeTimer = 0f;
 
         Debug.Log("[PlayerFight] Attack state reset.");
+
+        if (autoDamageCoroutine != null)
+        {
+            StopCoroutine(autoDamageCoroutine);
+            autoDamageCoroutine = null;
+        }
+        hasDealtDamageThisAttack = false;
 
         if (tpc != null)
         {

@@ -139,6 +139,9 @@ public class EnemyAIController : MonoBehaviour
             StopCoroutine(stateRoutine);
             stateRoutine = null;
         }
+
+        if (EnemyAttackCoordinator.Instance != null)
+            EnemyAttackCoordinator.Instance.ReleaseAttackToken(this);
     }
 
     private void TransitionTo(EnemyState next)
@@ -294,8 +297,12 @@ public class EnemyAIController : MonoBehaviour
             float effectiveAttackRange = attackPattern != null ? attackPattern.AttackRange : attackRange;
             if (dist <= effectiveAttackRange && cooldownTimer <= 0f)
             {
-                TransitionTo(EnemyState.Attack);
-                yield break;
+                // Minta izin giliran menyerang dari Attack Coordinator
+                if (EnemyAttackCoordinator.Instance == null || EnemyAttackCoordinator.Instance.RequestAttackToken(this))
+                {
+                    TransitionTo(EnemyState.Attack);
+                    yield break;
+                }
             }
 
             if (cooldownTimer > 0f)
@@ -355,6 +362,9 @@ public class EnemyAIController : MonoBehaviour
     {
         if (playerTarget == null || attackPattern == null)
         {
+            if (EnemyAttackCoordinator.Instance != null)
+                EnemyAttackCoordinator.Instance.ReleaseAttackToken(this);
+
             TransitionTo(EnemyState.Chase);
             yield break;
         }
@@ -399,6 +409,9 @@ public class EnemyAIController : MonoBehaviour
 
         onAttackEndEvents?.Invoke();
 
+        if (EnemyAttackCoordinator.Instance != null)
+            EnemyAttackCoordinator.Instance.ReleaseAttackToken(this);
+
         cooldownTimer = attackPattern.AttackCooldown;
 
         // Note: attack patterns (e.g. SlimeDashAttackSO) already snap the transform
@@ -422,6 +435,9 @@ public class EnemyAIController : MonoBehaviour
 
     private void HandleDeath()
     {
+        if (EnemyAttackCoordinator.Instance != null)
+            EnemyAttackCoordinator.Instance.ReleaseAttackToken(this);
+
         TransitionTo(EnemyState.Dead);
         enabled = false;
     }

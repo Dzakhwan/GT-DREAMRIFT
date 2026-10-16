@@ -12,7 +12,7 @@ public class EnemyHealthBarUI : MonoBehaviour
     [SerializeField] private CanvasGroup canvasGroup;
 
     [Tooltip("Offset posisi bar di atas kepala enemy (dalam unit dunia)")]
-    [SerializeField] private Vector3 worldOffset = new Vector3(0f, 2.2f, 0f);
+    [SerializeField] private Vector3 worldOffset = new Vector3(0f, 1.25f, 0f);
 
     // Enemy yang sedang di-track oleh health bar ini
     private Transform trackedEnemy;
@@ -29,7 +29,7 @@ public class EnemyHealthBarUI : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (trackedEnemy == null)
+        if (trackedEnemy == null || !trackedEnemy.gameObject.activeInHierarchy)
         {
             Hide();
             return;
@@ -42,13 +42,17 @@ public class EnemyHealthBarUI : MonoBehaviour
 
     /// <summary>
     /// Kaitkan health bar ini ke enemy tertentu.
-    /// Dipanggil oleh EnemyHealthBarPool saat enemy terkena damage.
+    /// Dipanggil oleh EnemyHealthBarPool saat enemy spawn atau terkena damage.
     /// </summary>
-    public void Attach(Transform enemy, int currentHP, int maxHP)
+    public void Attach(Transform enemy, int currentHP, int maxHP, Vector3? customOffset = null)
     {
         trackedEnemy = enemy;
+        if (customOffset.HasValue)
+            worldOffset = customOffset.Value;
+
         gameObject.SetActive(true);
         UpdateBar(currentHP, maxHP);
+        UpdateScreenPosition();
     }
 
     /// <summary>
@@ -76,6 +80,20 @@ public class EnemyHealthBarUI : MonoBehaviour
 
     private void UpdateScreenPosition()
     {
+        if (trackedEnemy == null) return;
+
+        if (mainCam == null)
+            mainCam = Camera.main;
+
+        if (mainCam == null)
+            return;
+
+        if (parentCanvas == null)
+            parentCanvas = GetComponentInParent<Canvas>();
+
+        if (rectTransform == null)
+            rectTransform = GetComponent<RectTransform>();
+
         // Konversi posisi dunia enemy ke posisi layar
         Vector3 worldPos = trackedEnemy.position + worldOffset;
         Vector3 screenPos = mainCam.WorldToScreenPoint(worldPos);
@@ -83,20 +101,21 @@ public class EnemyHealthBarUI : MonoBehaviour
         // Sembunyikan jika enemy ada di belakang kamera
         if (screenPos.z < 0f)
         {
-            canvasGroup.alpha = 0f;
+            if (canvasGroup != null) canvasGroup.alpha = 0f;
             return;
         }
 
-        canvasGroup.alpha = 1f;
+        if (canvasGroup != null) canvasGroup.alpha = 1f;
 
         // Konversi screen position ke local position di dalam Canvas
-        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            parentCanvas.GetComponent<RectTransform>(),
-            screenPos,
-            parentCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : mainCam,
-            out Vector2 localPoint))
+        if (parentCanvas != null && rectTransform != null)
         {
-            rectTransform.localPosition = localPoint;
+            RectTransform canvasRect = parentCanvas.GetComponent<RectTransform>();
+            Camera eventCam = parentCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : mainCam;
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, screenPos, eventCam, out Vector2 localPoint))
+            {
+                rectTransform.localPosition = localPoint;
+            }
         }
     }
 
