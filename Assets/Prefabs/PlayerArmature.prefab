@@ -2280,7 +2280,7 @@ MonoBehaviour:
   - 1
   - 1.2
   - 1.5
-  attackRange: 1.8
+  attackRange: 2.2
   enemyLayer:
     serializedVersion: 2
     m_Bits: 64

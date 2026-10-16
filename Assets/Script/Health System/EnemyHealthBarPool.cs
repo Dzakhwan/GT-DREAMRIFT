@@ -45,17 +45,30 @@ public class EnemyHealthBarPool : MonoBehaviour
 
     private void Start()
     {
+        // Pastikan healthBarsParent memiliki Canvas mandiri (Sub-Canvas)
+        // agar pergerakan floating health bar tidak memicu re-batch pada Canvas HUD utama!
+        if (healthBarsParent != null && !healthBarsParent.TryGetComponent(out Canvas _))
+        {
+            Canvas subCanvas = healthBarsParent.gameObject.AddComponent<Canvas>();
+            subCanvas.overrideSorting = true;
+            if (screenCanvas != null)
+                subCanvas.sortingOrder = screenCanvas.sortingOrder + 1;
+        }
+
         // Tentukan parent: pakai healthBarsParent jika ada, fallback ke Canvas
         Transform parent = healthBarsParent != null
             ? healthBarsParent
-            : screenCanvas.transform;
+            : (screenCanvas != null ? screenCanvas.transform : transform);
 
         // Buat health bar sebanyak poolSize di awal
-        for (int i = 0; i < poolSize; i++)
+        if (healthBarPrefab != null)
         {
-            EnemyHealthBarUI bar = Instantiate(healthBarPrefab, parent);
-            bar.gameObject.SetActive(false);
-            pool.Add(bar);
+            for (int i = 0; i < poolSize; i++)
+            {
+                EnemyHealthBarUI bar = Instantiate(healthBarPrefab, parent);
+                bar.gameObject.SetActive(false);
+                pool.Add(bar);
+            }
         }
     }
 
@@ -63,39 +76,48 @@ public class EnemyHealthBarPool : MonoBehaviour
 
     /// <summary>
     /// Tampilkan health bar untuk enemy tertentu.
-    /// Dipanggil dari EnemyHealth saat TakeDamage() dipanggil.
+    /// Dipanggil dari EnemyHealth saat spawn atau saat TakeDamage() dipanggil.
     /// </summary>
-    public void ShowHealthBar(Transform enemy, int currentHP, int maxHP)
+    public void ShowHealthBar(Transform enemy, int currentHP, int maxHP, Vector3? customOffset = null)
     {
+        if (enemy == null) return;
+
         // Jika enemy sudah punya health bar aktif, update saja
         if (activeMap.TryGetValue(enemy, out EnemyHealthBarUI existingBar))
         {
-            existingBar.UpdateBar(currentHP, maxHP);
-            return;
+            if (existingBar != null)
+            {
+                existingBar.UpdateBar(currentHP, maxHP);
+                return;
+            }
+            activeMap.Remove(enemy);
         }
 
         // Cari health bar yang sedang bebas dari pool
         EnemyHealthBarUI freeBar = GetFreeBar();
         if (freeBar == null)
         {
-            Debug.LogWarning("[HealthBarPool] Pool penuh! Tambah poolSize di Inspector.");
+            Debug.LogWarning("[HealthBarPool] Gagal mendapatkan health bar untuk " + enemy.name);
             return;
         }
 
         // Klaim health bar untuk enemy ini
-        freeBar.Attach(enemy, currentHP, maxHP);
+        freeBar.Attach(enemy, currentHP, maxHP, customOffset);
         activeMap[enemy] = freeBar;
     }
 
     /// <summary>
     /// Kembalikan health bar enemy ke pool (saat enemy mati atau keluar layar).
-    /// Dipanggil dari EnemyHealth saat Die() dipanggil.
+    /// Dipanggil dari EnemyHealth saat Die() atau OnDisable dipanggil.
     /// </summary>
     public void HideHealthBar(Transform enemy)
     {
+        if (enemy == null) return;
+
         if (activeMap.TryGetValue(enemy, out EnemyHealthBarUI bar))
         {
-            bar.Detach();
+            if (bar != null)
+                bar.Detach();
             activeMap.Remove(enemy);
         }
     }
@@ -107,9 +129,23 @@ public class EnemyHealthBarPool : MonoBehaviour
         foreach (var bar in pool)
         {
             // Bar bebas = tidak aktif atau tidak sedang tracking enemy
-            if (!bar.gameObject.activeSelf || bar.TrackedEnemy == null)
+            if (bar != null && (!bar.gameObject.activeSelf || bar.TrackedEnemy == null))
                 return bar;
         }
-        return null; // Pool penuh
+
+        // Auto-expand pool jika jumlah musuh melebihi poolSize awal
+        if (healthBarPrefab != null)
+        {
+            Transform parent = healthBarsParent != null
+                ? healthBarsParent
+                : (screenCanvas != null ? screenCanvas.transform : transform);
+
+            EnemyHealthBarUI newBar = Instantiate(healthBarPrefab, parent);
+            newBar.gameObject.SetActive(false);
+            pool.Add(newBar);
+            return newBar;
+        }
+
+        return null;
     }
 }
