@@ -98,8 +98,11 @@ public class EnemyHealthBarUI : MonoBehaviour
         Vector3 worldPos = trackedEnemy.position + worldOffset;
         Vector3 screenPos = mainCam.WorldToScreenPoint(worldPos);
 
-        // Sembunyikan jika enemy ada di belakang kamera
-        if (screenPos.z < 0f)
+        // Sembunyikan jika enemy di belakang kamera atau di luar batas layar (Frustum Culling)
+        const float screenMargin = 60f;
+        if (screenPos.z < 0f ||
+            screenPos.x < -screenMargin || screenPos.x > Screen.width + screenMargin ||
+            screenPos.y < -screenMargin || screenPos.y > Screen.height + screenMargin)
         {
             if (canvasGroup != null) canvasGroup.alpha = 0f;
             return;

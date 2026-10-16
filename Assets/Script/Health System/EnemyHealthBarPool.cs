@@ -45,6 +45,16 @@ public class EnemyHealthBarPool : MonoBehaviour
 
     private void Start()
     {
+        // Pastikan healthBarsParent memiliki Canvas mandiri (Sub-Canvas)
+        // agar pergerakan floating health bar tidak memicu re-batch pada Canvas HUD utama!
+        if (healthBarsParent != null && !healthBarsParent.TryGetComponent(out Canvas _))
+        {
+            Canvas subCanvas = healthBarsParent.gameObject.AddComponent<Canvas>();
+            subCanvas.overrideSorting = true;
+            if (screenCanvas != null)
+                subCanvas.sortingOrder = screenCanvas.sortingOrder + 1;
+        }
+
         // Tentukan parent: pakai healthBarsParent jika ada, fallback ke Canvas
         Transform parent = healthBarsParent != null
             ? healthBarsParent

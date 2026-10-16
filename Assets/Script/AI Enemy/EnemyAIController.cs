@@ -275,8 +275,9 @@ public class EnemyAIController : MonoBehaviour
 
     private IEnumerator ChaseState()
     {
-        chaseTickTimer = 0f;
-        repositionTimer = 0f;
+        // Stagger timer agar seluruh musuh tidak menghitung pathfinding di frame yang sama
+        chaseTickTimer = Random.Range(0f, chaseTickInterval);
+        repositionTimer = Random.Range(0f, 0.4f);
 
         while (true)
         {
@@ -529,7 +530,7 @@ public class EnemyAIController : MonoBehaviour
             return false;
         }
 
-        for (int i = 0; i < 12; i++)
+        for (int i = 0; i < 5; i++)
         {
             float radius = Random.Range(swarmMinRadius, swarmMaxRadius);
             Vector2 circle = Random.insideUnitCircle.normalized * radius;

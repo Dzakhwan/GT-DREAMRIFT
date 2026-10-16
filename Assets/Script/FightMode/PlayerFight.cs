@@ -49,6 +49,9 @@ public class PlayerFight : MonoBehaviour
     [Tooltip("Waktu delay otomatis untuk eksekusi damage jika animasi tidak memicu Animation Event (fallback).")]
     [SerializeField] private float autoDamageDelay = 0.28f;
 
+    [Tooltip("Tampilkan log detail pertarungan di Console (matikan untuk performa optimal).")]
+    [SerializeField] private bool showDebugLogs = false;
+
     // ===================== MOBILE BUTTON =====================
     [Header("Mobile Input")]
     [Tooltip("Drag & Drop tombol Attack dari Canvas UI untuk mobile")]
@@ -210,7 +213,8 @@ public class PlayerFight : MonoBehaviour
             tpc._lockRotation = false;
         }
 
-        Debug.Log($"[PlayerFight] Pre-attack dimulai, delay={preAttackDelay:F2}s");
+        if (showDebugLogs)
+            Debug.Log($"[PlayerFight] Pre-attack dimulai, delay={preAttackDelay:F2}s");
     }
 
     // Memulai serangan dengan combo index tertentu.
@@ -224,7 +228,8 @@ public class PlayerFight : MonoBehaviour
         comboWindowTimer = 0f;
         attackFailsafeTimer = Mathf.Max(0.1f, attackFailsafeDuration);
 
-        Debug.Log($"[PlayerFight] StartAttack → attackIndex={attackIndex}");
+        if (showDebugLogs)
+            Debug.Log($"[PlayerFight] StartAttack → attackIndex={attackIndex}");
 
         if (tpc != null)
         {
@@ -281,7 +286,8 @@ public class PlayerFight : MonoBehaviour
         int comboIndex = Mathf.Clamp(attackIndex - 1, 0, comboDamageMultipliers.Length - 1);
         finalDamage = Mathf.RoundToInt(baseDamage * comboDamageMultipliers[comboIndex]);
 
-        Debug.Log($"[PlayerFight] DealDamage dipanggil. Combo step {attackIndex}, damage: {finalDamage}");
+        if (showDebugLogs)
+            Debug.Log($"[PlayerFight] DealDamage dipanggil. Combo step {attackIndex}, damage: {finalDamage}");
 
         Vector3 origin = (attackOrigin != null && attackOrigin != transform)
             ? attackOrigin.position
@@ -322,12 +328,13 @@ public class PlayerFight : MonoBehaviour
             if (damageable != null && damagedSet.Add(damageable))
             {
                 damageable.TakeDamage(finalDamage);
-                Debug.Log($"[PlayerFight] Mengenai {hit.name} sebesar {finalDamage} damage!");
+                if (showDebugLogs)
+                    Debug.Log($"[PlayerFight] Mengenai {hit.name} sebesar {finalDamage} damage!");
                 hitAnything = true;
             }
         }
 
-        if (!hitAnything)
+        if (!hitAnything && showDebugLogs)
             Debug.Log("[PlayerFight] Serangan tidak mengenai musuh apapun.");
     }
 
@@ -341,7 +348,8 @@ public class PlayerFight : MonoBehaviour
 
         comboWindowOpen = true;
         comboWindowTimer = comboWindowDuration;
-        Debug.Log($"[PlayerFight] OpenComboWindow → comboWindowTimer={comboWindowTimer:F3}");
+        if (showDebugLogs)
+            Debug.Log($"[PlayerFight] OpenComboWindow → comboWindowTimer={comboWindowTimer:F3}");
     }
 
     /// <summary>
@@ -356,7 +364,8 @@ public class PlayerFight : MonoBehaviour
             return;
         }
 
-        Debug.Log($"[PlayerFight] CloseAttack called → attackIndex={attackIndex}");
+        if (showDebugLogs)
+            Debug.Log($"[PlayerFight] CloseAttack called → attackIndex={attackIndex}");
         ResetAttackState();
     }
 
