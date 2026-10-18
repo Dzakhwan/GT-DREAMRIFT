@@ -140,6 +140,18 @@ public class EnemyHealth : MonoBehaviour, IDamageable
         Die();
     }
 
+    /// <summary>
+    /// Meneruskan knockback ke EnemyAIController jika terpasang.
+    /// </summary>
+    public void ApplyKnockback(Vector3 direction, float distance, float duration = 0.2f)
+    {
+        var ai = GetComponent<EnemyAIController>();
+        if (ai != null)
+        {
+            ai.ApplyKnockback(direction, distance, duration);
+        }
+    }
+
     // ===================== PRIVATE METHODS =====================
 
     [Header("Quest Integration")]

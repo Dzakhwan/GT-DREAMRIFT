@@ -89,6 +89,7 @@ namespace StarterAssets
 
         [Tooltip("Lock rotation during attack root motion")]
         public bool _lockRotation = false;
+
         // cinemachine
         private float _cinemachineTargetYaw;
         private float _cinemachineTargetPitch;
@@ -100,8 +101,6 @@ namespace StarterAssets
         private float _rotationVelocity;
         private float _verticalVelocity;
         private float _terminalVelocity = 53.0f;
-
-
 
         // timeout deltatime
         private float _jumpTimeoutDelta;

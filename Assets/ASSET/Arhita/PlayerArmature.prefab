@@ -962,6 +962,16 @@ MonoBehaviour:
   BottomClamp: -30
   CameraAngleOverride: 0
   LockCameraPosition: 0
+  lockPitchAngle: 1
+  fixedPitchAngle: 25
+  _isAttacking: 0
+  _lockRotation: 0
+  attackMoveSpeedMultiplier: 0.8
+  allowRotationDuringAttack: 1
+  dashSpeed: 13.5
+  dashDuration: 0.35
+  dashCooldown: 0.55
+  _isDashing: 0
 --- !u!114 &5701410894467884179
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -996,9 +1006,13 @@ MonoBehaviour:
   jump: 0
   sprint: 0
   fire: 0
+  dash: 0
   analogMovement: 0
   cursorLocked: 1
   cursorInputForLook: 1
+  requireRightClickToLook: 1
+  pcVirtualLookSensitivity: 0.001
+  mobileVirtualLookSensitivity: 0.001
 --- !u!114 &5383282433241206624
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1139,6 +1153,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerFight
   maxComboSteps: 3
   comboWindowDuration: 2.05
+  preAttackDelay: 0.05
+  attackFailsafeDuration: 3
   baseDamage: 20
   comboDamageMultipliers:
   - 1
@@ -1151,6 +1167,19 @@ MonoBehaviour:
   useTagInstead: 0
   enemyTag: Enemy
   attackOrigin: {fileID: 0}
+  autoDamageDelay: 0.28
+  showDebugLogs: 0
+  hitImpactVFXPrefab: {fileID: 4625109239048288297, guid: b100fd0e97675a047a613d3f8612b787, type: 3}
+  hitSlashSliceVFXPrefab: {fileID: 8337929404812589894, guid: 4884cc370c5584341a5913d367eb0687, type: 3}
+  slashArcVFXPrefab: {fileID: 4579344676633720227, guid: 26a52d8403e34d543a873f398fe5fff6, type: 3}
+  comboKnockbackDistances:
+  - 1.2
+  - 2
+  - 3.8
+  comboKnockbackDurations:
+  - 0.15
+  - 0.2
+  - 0.3
   attackButton: {fileID: 0}
 --- !u!114 &5708162364930703983
 MonoBehaviour:
@@ -1168,9 +1197,16 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   detectionRadius: 3
+  detectionMode: 1
+  raycastThickness: 0.5
+  raycastHeightOffset: 1
   interactButtonPanel: {fileID: 0}
   interactLabelText: {fileID: 0}
   interactButton: {fileID: 0}
+  followTargetOnScreen: 1
+  uiWorldHeightOffset: 0.5
+  uiScreenOffset: {x: 0, y: 0}
+  detectionInterval: 0.1
 --- !u!114 &1234567890123456789
 MonoBehaviour:
   m_ObjectHideFlags: 0
