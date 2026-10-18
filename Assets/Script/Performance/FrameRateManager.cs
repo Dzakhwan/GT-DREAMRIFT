@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 /// <summary>
 /// Mengatur target frame rate dan VSync agar gameplay berjalan mulus dan stabil (bebas micro-stutter).
@@ -31,5 +32,11 @@ public class FrameRateManager : MonoBehaviour
     {
         QualitySettings.vSyncCount = vsync;
         Application.targetFrameRate = fps;
+
+        // Nonaktifkan runtime UI URP Debugger agar popup "Display Stats" tidak muncul di game/device simulator
+        if (DebugManager.instance != null)
+        {
+            DebugManager.instance.enableRuntimeUI = false;
+        }
     }
 }

@@ -8,15 +8,28 @@ using UnityEngine;
 public class EnemyAttackCoordinator : MonoBehaviour
 {
     private static EnemyAttackCoordinator instance;
+    private static bool isShuttingDown = false;
+
+    public static bool HasInstance => !isShuttingDown && instance != null;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        instance = null;
+        isShuttingDown = false;
+    }
 
     public static EnemyAttackCoordinator Instance
     {
         get
         {
+            if (isShuttingDown)
+                return null;
+
             if (instance == null)
             {
                 instance = FindFirstObjectByType<EnemyAttackCoordinator>();
-                if (instance == null)
+                if (instance == null && !isShuttingDown)
                 {
                     GameObject go = new GameObject("EnemyAttackCoordinator");
                     instance = go.AddComponent<EnemyAttackCoordinator>();
@@ -116,9 +129,17 @@ public class EnemyAttackCoordinator : MonoBehaviour
         }
     }
 
+    private void OnApplicationQuit()
+    {
+        isShuttingDown = true;
+    }
+
     private void OnDestroy()
     {
         if (instance == this)
+        {
             instance = null;
+            isShuttingDown = true;
+        }
     }
 }
