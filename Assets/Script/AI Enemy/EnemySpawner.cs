@@ -22,6 +22,14 @@ public class EnemySpawner : MonoBehaviour
     [Tooltip("Delay (seconds) before spawning a new enemy after one dies.")]
     [SerializeField] private float spawnInterval = 3f;
 
+    [Header("Respawn Settings")]
+    [Tooltip("Jika false, musuh yang mati TIDAK akan di-spawn ulang.")]
+    [SerializeField] private bool respawnOnDeath = false;
+
+    [Header("Events")]
+    [Tooltip("Event yang dipanggil saat seluruh musuh dari spawner ini telah dieliminasi.")]
+    public UnityEngine.Events.UnityEvent onAllEnemiesCleared;
+
     private readonly List<EnemyHealth> spawnedEnemies = new List<EnemyHealth>();
     private bool isSpawning = false;
 
@@ -36,7 +44,7 @@ public class EnemySpawner : MonoBehaviour
 
     private void Update()
     {
-        if (spawnedEnemies.Count < maxEnemies && !isSpawning)
+        if (respawnOnDeath && spawnedEnemies.Count < maxEnemies && !isSpawning)
         {
             StartCoroutine(SpawnRoutine());
         }
@@ -47,7 +55,7 @@ public class EnemySpawner : MonoBehaviour
         isSpawning = true;
         yield return new WaitForSeconds(spawnInterval);
 
-        if (spawnedEnemies.Count < maxEnemies)
+        if (respawnOnDeath && spawnedEnemies.Count < maxEnemies)
         {
             SpawnEnemy();
         }
@@ -85,6 +93,10 @@ public class EnemySpawner : MonoBehaviour
         if (spawnedEnemies.Contains(enemy))
         {
             spawnedEnemies.Remove(enemy);
+            if (spawnedEnemies.Count == 0 && !isSpawning)
+            {
+                onAllEnemiesCleared?.Invoke();
+            }
         }
     }
 

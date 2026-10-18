@@ -140,7 +140,7 @@ public class EnemyAIController : MonoBehaviour
             stateRoutine = null;
         }
 
-        if (EnemyAttackCoordinator.Instance != null)
+        if (EnemyAttackCoordinator.HasInstance)
             EnemyAttackCoordinator.Instance.ReleaseAttackToken(this);
     }
 
@@ -363,7 +363,7 @@ public class EnemyAIController : MonoBehaviour
     {
         if (playerTarget == null || attackPattern == null)
         {
-            if (EnemyAttackCoordinator.Instance != null)
+            if (EnemyAttackCoordinator.HasInstance)
                 EnemyAttackCoordinator.Instance.ReleaseAttackToken(this);
 
             TransitionTo(EnemyState.Chase);
@@ -410,7 +410,7 @@ public class EnemyAIController : MonoBehaviour
 
         onAttackEndEvents?.Invoke();
 
-        if (EnemyAttackCoordinator.Instance != null)
+        if (EnemyAttackCoordinator.HasInstance)
             EnemyAttackCoordinator.Instance.ReleaseAttackToken(this);
 
         cooldownTimer = attackPattern.AttackCooldown;
@@ -436,7 +436,7 @@ public class EnemyAIController : MonoBehaviour
 
     private void HandleDeath()
     {
-        if (EnemyAttackCoordinator.Instance != null)
+        if (EnemyAttackCoordinator.HasInstance)
             EnemyAttackCoordinator.Instance.ReleaseAttackToken(this);
 
         TransitionTo(EnemyState.Dead);
