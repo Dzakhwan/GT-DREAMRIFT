@@ -620,6 +620,72 @@ public class EnemyAIController : MonoBehaviour
         transform.localScale = originalScale;
     }
 
+    private Coroutine knockbackCoroutine;
+    private bool isKnockedBack = false;
+
+    public bool IsKnockedBack => isKnockedBack;
+
+    /// <summary>
+    /// Menerapkan gaya dorong ke belakang (Knockback) pada musuh saat terkena serangan.
+    /// Menggunakan agent.Move() agar aman terhadap batas NavMesh (tidak menembus tembok).
+    /// </summary>
+    public void ApplyKnockback(Vector3 direction, float distance, float duration = 0.2f)
+    {
+        if (currentState == EnemyState.Dead || (health != null && health.IsDead)) return;
+
+        if (knockbackCoroutine != null)
+        {
+            StopCoroutine(knockbackCoroutine);
+        }
+
+        knockbackCoroutine = StartCoroutine(KnockbackRoutine(direction, distance, duration));
+    }
+
+    private IEnumerator KnockbackRoutine(Vector3 direction, float distance, float duration)
+    {
+        isKnockedBack = true;
+        direction.y = 0f;
+        direction.Normalize();
+
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+        }
+
+        float elapsed = 0f;
+        float speed = distance / Mathf.Max(0.05f, duration);
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = Mathf.Clamp01(elapsed / duration);
+
+            // Ease-out: dorongan kuat di awal lalu melambat secara natural
+            float currentSpeed = Mathf.Lerp(speed * 1.6f, 0f, progress);
+            Vector3 delta = direction * (currentSpeed * Time.deltaTime);
+
+            if (agent != null && agent.enabled && agent.isOnNavMesh)
+            {
+                agent.Move(delta);
+            }
+            else
+            {
+                transform.position += delta;
+            }
+
+            yield return null;
+        }
+
+        if (agent != null && agent.enabled && agent.isOnNavMesh && currentState != EnemyState.Dead)
+        {
+            agent.isStopped = false;
+        }
+
+        isKnockedBack = false;
+        knockbackCoroutine = null;
+    }
+
     private void OnDrawGizmosSelected()
     {
         if (!showDebugGizmos) return;

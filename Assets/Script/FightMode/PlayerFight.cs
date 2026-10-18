@@ -52,6 +52,50 @@ public class PlayerFight : MonoBehaviour
     [Tooltip("Tampilkan log detail pertarungan di Console (matikan untuk performa optimal).")]
     [SerializeField] private bool showDebugLogs = false;
 
+    // ===================== COMBAT VFX & KNOCKBACK =====================
+    [Header("Combat VFX")]
+    [Tooltip("Prefab efek benturan partikel (sparks/impact flare) saat mengenai musuh")]
+    [SerializeField] private GameObject hitImpactVFXPrefab;
+
+    [Tooltip("Prefab efek garis tebasan slice pada tubuh musuh")]
+    [SerializeField] private GameObject hitSlashSliceVFXPrefab;
+
+    [Tooltip("Prefab efek busur tebasan ayunan pedang di udara")]
+    [SerializeField] private GameObject slashArcVFXPrefab;
+
+    [Tooltip("Aktifkan efek busur sabetan pedang di udara saat mengayun")]
+    [SerializeField] private bool enableSlashArcVFX = false;
+
+    [Header("Knockback Settings")]
+    [Tooltip("Jarak dorongan knockback per combo step (meter)")]
+    [SerializeField] private float[] comboKnockbackDistances = { 1.2f, 2.0f, 3.8f };
+
+    [Tooltip("Durasi dorongan knockback per combo step (detik)")]
+    [SerializeField] private float[] comboKnockbackDurations = { 0.15f, 0.20f, 0.30f };
+
+    // ===================== WEAPON (STAFF) SETTINGS =====================
+    [Header("Staff Weapon Settings")]
+    [Tooltip("Prefab/model tongkat (FBX)")]
+    [SerializeField] private GameObject staffPrefab;
+
+    [Tooltip("Material URP Lit untuk tongkat")]
+    [SerializeField] private Material staffMaterial;
+
+    [Tooltip("Aktifkan auto-attach tongkat ke tangan kanan saat Start")]
+    [SerializeField] private bool autoAttachStaff = true;
+
+    [Tooltip("Offset posisi tongkat di telapak tangan kanan")]
+    [SerializeField] private Vector3 staffGripPosition = new Vector3(0.0f, 0.075f, 0.005f);
+
+    [Tooltip("Offset rotasi tongkat di telapak tangan kanan")]
+    [SerializeField] private Vector3 staffGripRotation = new Vector3(0f, 0f, 90f);
+
+    [Tooltip("Skala tongkat agar proporsional")]
+    [SerializeField] private Vector3 staffGripScale = new Vector3(0.7f, 0.7f, 0.7f);
+
+    [Tooltip("Offset posisi model tongkat di dalam socket (maju ke depan/bawah genggaman)")]
+    [SerializeField] private Vector3 staffModelOffset = new Vector3(0f, 0.30f, 0f);
+
     // ===================== MOBILE BUTTON =====================
     [Header("Mobile Input")]
     [Tooltip("Drag & Drop tombol Attack dari Canvas UI untuk mobile")]
@@ -94,6 +138,9 @@ public class PlayerFight : MonoBehaviour
 
     private void Start()
     {
+        // Pasangkan tongkat ke tangan kanan jika belum ada
+        EnsureStaffEquipped();
+
         // Gunakan posisi Player jika attackOrigin tidak di-assign
         if (attackOrigin == null)
             attackOrigin = transform;
@@ -101,6 +148,111 @@ public class PlayerFight : MonoBehaviour
         // Daftarkan tombol attack untuk mobile
         if (attackButton != null)
             attackButton.onClick.AddListener(OnAttackButtonPressed);
+
+#if UNITY_EDITOR
+        if (hitImpactVFXPrefab == null)
+            hitImpactVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/HitImpact_VFX.prefab");
+        if (hitSlashSliceVFXPrefab == null)
+            hitSlashSliceVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/HitSlashSlice_VFX.prefab");
+        if (slashArcVFXPrefab == null)
+            slashArcVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/SlashArc_VFX.prefab");
+#endif
+    }
+
+    private void EnsureStaffEquipped()
+    {
+        if (!autoAttachStaff) return;
+
+        // Cari tulang tangan kanan humanoid yang aktif dan teranimasi
+        Transform rightHand = null;
+        if (animator != null)
+        {
+            rightHand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+        }
+        if (rightHand == null)
+        {
+            rightHand = FindDeepChild(transform, "RightHand");
+        }
+        if (rightHand == null)
+        {
+            rightHand = FindDeepChild(transform, "Right_Hand");
+        }
+        if (rightHand == null) return;
+
+        // Bersihkan socket lama yang mungkin salah terpasang di skeleton dummy/lainnya
+        foreach (var t in GetComponentsInChildren<Transform>(true))
+        {
+            if (t != null && t.name == "Staff_Socket" && t.parent != rightHand)
+            {
+                Destroy(t.gameObject);
+            }
+        }
+
+        Transform existingSocket = rightHand.Find("Staff_Socket");
+        if (existingSocket != null)
+        {
+            existingSocket.localPosition = staffGripPosition;
+            existingSocket.localRotation = Quaternion.Euler(staffGripRotation);
+            existingSocket.localScale = staffGripScale;
+
+            Transform existingModel = existingSocket.Find("Meshy_Crystal_Crescent_Staff");
+            if (existingModel != null)
+            {
+                existingModel.localPosition = staffModelOffset;
+            }
+
+            Transform tip = existingSocket.Find("StaffTip_AttackOrigin");
+            if (tip != null)
+            {
+                tip.localPosition = new Vector3(0f, 0.95f + staffModelOffset.y, 0f);
+                if (attackOrigin == null) attackOrigin = tip;
+            }
+            return;
+        }
+
+#if UNITY_EDITOR
+        if (staffPrefab == null)
+            staffPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ASSET/Meshy_AI_Crystal_Crescent_Staf_1018145354_texture_fbx/Meshy_AI_Crystal_Crescent_Staf_1018145354_texture_fbx/Meshy_AI_Crystal_Crescent_Staf_1018145354_texture.fbx");
+        if (staffMaterial == null)
+            staffMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/ASSET/Meshy_AI_Crystal_Crescent_Staf_1018145354_texture_fbx/Materials/M_CrystalCrescentStaff.mat");
+#endif
+
+        if (staffPrefab == null) return;
+
+        GameObject socketObj = new GameObject("Staff_Socket");
+        socketObj.transform.SetParent(rightHand, false);
+        socketObj.transform.localPosition = staffGripPosition;
+        socketObj.transform.localRotation = Quaternion.Euler(staffGripRotation);
+        socketObj.transform.localScale = staffGripScale;
+
+        GameObject staffInst = Instantiate(staffPrefab, socketObj.transform);
+        staffInst.name = "Meshy_Crystal_Crescent_Staff";
+        staffInst.transform.localPosition = staffModelOffset;
+        staffInst.transform.localRotation = Quaternion.Euler(270f, 0f, 0f);
+
+        if (staffMaterial != null)
+        {
+            foreach (Renderer r in staffInst.GetComponentsInChildren<Renderer>(true))
+            {
+                r.sharedMaterial = staffMaterial;
+            }
+        }
+
+        GameObject tipObj = new GameObject("StaffTip_AttackOrigin");
+        tipObj.transform.SetParent(socketObj.transform, false);
+        tipObj.transform.localPosition = new Vector3(0f, 0.95f + staffModelOffset.y, 0f);
+        attackOrigin = tipObj.transform;
+    }
+
+    private Transform FindDeepChild(Transform parent, string name)
+    {
+        if (parent.name == name) return parent;
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform result = FindDeepChild(parent.GetChild(i), name);
+            if (result != null) return result;
+        }
+        return null;
     }
 
     private void Update()
@@ -210,7 +362,7 @@ public class PlayerFight : MonoBehaviour
         if (tpc != null)
         {
             tpc._isAttacking = true;
-            tpc._lockRotation = false;
+            tpc._lockRotation = false; // Saat pre-attack player masih bisa rotasi ke arah musuh/input
         }
 
         if (showDebugLogs)
@@ -234,7 +386,7 @@ public class PlayerFight : MonoBehaviour
         if (tpc != null)
         {
             tpc._isAttacking = true;
-            tpc._lockRotation = true;
+            tpc._lockRotation = true; // Kunci rotasi & aktifkan root motion pada OnAnimatorMove
         }
 
         if (animator != null)
@@ -247,9 +399,27 @@ public class PlayerFight : MonoBehaviour
             }
         }
 
+        // Spawn efek busur tebasan ayunan pedang di udara jika diaktifkan
+        if (enableSlashArcVFX)
+        {
+            SpawnSlashArcVisual(attackIndex);
+        }
+
         hasDealtDamageThisAttack = false;
         if (autoDamageCoroutine != null) StopCoroutine(autoDamageCoroutine);
         autoDamageCoroutine = StartCoroutine(AutoDamageFallbackRoutine());
+    }
+
+    private void SpawnSlashArcVisual(int comboStep)
+    {
+        if (slashArcVFXPrefab == null) return;
+
+        Vector3 spawnPos = transform.position + transform.forward * 1.0f + Vector3.up * 0.9f;
+        float rollAngle = comboStep == 1 ? 0f : (comboStep == 2 ? 45f : -45f);
+        Quaternion rot = transform.rotation * Quaternion.Euler(0f, 0f, rollAngle);
+
+        GameObject arc = Instantiate(slashArcVFXPrefab, spawnPos, rot);
+        Destroy(arc, 0.5f);
     }
 
     private System.Collections.IEnumerator AutoDamageFallbackRoutine()
@@ -331,6 +501,54 @@ public class PlayerFight : MonoBehaviour
                 if (showDebugLogs)
                     Debug.Log($"[PlayerFight] Mengenai {hit.name} sebesar {finalDamage} damage!");
                 hitAnything = true;
+
+                // 1. Hit Impact Sparks & Flash VFX
+                Vector3 contactPoint = hit.ClosestPoint(origin);
+                Vector3 hitNormal = (contactPoint - origin);
+                if (hitNormal.sqrMagnitude < 0.001f) hitNormal = transform.forward;
+                hitNormal.Normalize();
+
+                if (hitImpactVFXPrefab != null)
+                {
+                    GameObject impact = Instantiate(hitImpactVFXPrefab, contactPoint, Quaternion.LookRotation(hitNormal));
+                    Destroy(impact, 1.2f);
+                }
+
+                // 2. Damage Hit Slash Slice Cut VFX
+                if (hitSlashSliceVFXPrefab != null)
+                {
+                    float sliceAngle = attackIndex == 1 ? 0f : (attackIndex == 2 ? -35f : 65f);
+                    Quaternion sliceRot = Quaternion.LookRotation(transform.forward) * Quaternion.Euler(0f, 0f, sliceAngle);
+                    GameObject slice = Instantiate(hitSlashSliceVFXPrefab, contactPoint, sliceRot);
+                    Destroy(slice, 1.2f);
+                }
+
+                // 3. Knockback Physics pada musuh
+                Vector3 knockbackDir = (hit.transform.position - transform.position);
+                knockbackDir.y = 0f;
+                if (knockbackDir.sqrMagnitude < 0.001f) knockbackDir = transform.forward;
+                knockbackDir.Normalize();
+
+                int kIndex = Mathf.Clamp(attackIndex - 1, 0, comboKnockbackDistances.Length - 1);
+                float kDist = comboKnockbackDistances[kIndex];
+                float kDur = comboKnockbackDurations[kIndex];
+
+                EnemyAIController enemyAI = hit.GetComponentInParent<EnemyAIController>();
+                if (enemyAI == null) enemyAI = hit.GetComponent<EnemyAIController>();
+
+                if (enemyAI != null)
+                {
+                    enemyAI.ApplyKnockback(knockbackDir, kDist, kDur);
+                }
+                else
+                {
+                    EnemyHealth enemyHealth = hit.GetComponentInParent<EnemyHealth>();
+                    if (enemyHealth == null) enemyHealth = hit.GetComponent<EnemyHealth>();
+                    if (enemyHealth != null)
+                    {
+                        enemyHealth.ApplyKnockback(knockbackDir, kDist, kDur);
+                    }
+                }
             }
         }
 
