@@ -54,10 +54,10 @@ public class PlayerFight : MonoBehaviour
 
     // ===================== COMBAT VFX & KNOCKBACK =====================
     [Header("Combat VFX")]
-    [Tooltip("Prefab efek benturan partikel (sparks/impact flare) saat mengenai musuh")]
+    [Tooltip("Prefab efek benturan partikel darah (Blood Hit VFX) saat mengenai musuh")]
     [SerializeField] private GameObject hitImpactVFXPrefab;
 
-    [Tooltip("Prefab efek garis tebasan slice pada tubuh musuh")]
+    [Tooltip("Prefab efek garis tebasan slice darah (Blood Slash Slice VFX) pada tubuh musuh")]
     [SerializeField] private GameObject hitSlashSliceVFXPrefab;
 
     [Tooltip("Prefab efek busur tebasan ayunan pedang di udara")]
@@ -151,9 +151,9 @@ public class PlayerFight : MonoBehaviour
 
 #if UNITY_EDITOR
         if (hitImpactVFXPrefab == null)
-            hitImpactVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/HitImpact_VFX.prefab");
+            hitImpactVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/BloodHit_VFX.prefab");
         if (hitSlashSliceVFXPrefab == null)
-            hitSlashSliceVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/HitSlashSlice_VFX.prefab");
+            hitSlashSliceVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/BloodSlashSlice_VFX.prefab");
         if (slashArcVFXPrefab == null)
             slashArcVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/SlashArc_VFX.prefab");
 #endif
@@ -502,24 +502,36 @@ public class PlayerFight : MonoBehaviour
                     Debug.Log($"[PlayerFight] Mengenai {hit.name} sebesar {finalDamage} damage!");
                 hitAnything = true;
 
-                // 1. Hit Impact Sparks & Flash VFX
+                // Cek referensi EnemyHealth untuk custom VFX per tipe musuh (misal: Slime)
+                EnemyHealth enemyHealth = hit.GetComponentInParent<EnemyHealth>();
+                if (enemyHealth == null) enemyHealth = hit.GetComponent<EnemyHealth>();
+
+                // 1. Hit Impact Blood / Splatter VFX
                 Vector3 contactPoint = hit.ClosestPoint(origin);
                 Vector3 hitNormal = (contactPoint - origin);
                 if (hitNormal.sqrMagnitude < 0.001f) hitNormal = transform.forward;
                 hitNormal.Normalize();
 
-                if (hitImpactVFXPrefab != null)
+                GameObject impactPrefabToSpawn = (enemyHealth != null && enemyHealth.CustomHitVFXPrefab != null)
+                    ? enemyHealth.CustomHitVFXPrefab
+                    : hitImpactVFXPrefab;
+
+                if (impactPrefabToSpawn != null)
                 {
-                    GameObject impact = Instantiate(hitImpactVFXPrefab, contactPoint, Quaternion.LookRotation(hitNormal));
+                    GameObject impact = Instantiate(impactPrefabToSpawn, contactPoint, Quaternion.LookRotation(hitNormal));
                     Destroy(impact, 1.2f);
                 }
 
                 // 2. Damage Hit Slash Slice Cut VFX
-                if (hitSlashSliceVFXPrefab != null)
+                GameObject slicePrefabToSpawn = (enemyHealth != null && enemyHealth.CustomSlashSliceVFXPrefab != null)
+                    ? enemyHealth.CustomSlashSliceVFXPrefab
+                    : hitSlashSliceVFXPrefab;
+
+                if (slicePrefabToSpawn != null)
                 {
                     float sliceAngle = attackIndex == 1 ? 0f : (attackIndex == 2 ? -35f : 65f);
                     Quaternion sliceRot = Quaternion.LookRotation(transform.forward) * Quaternion.Euler(0f, 0f, sliceAngle);
-                    GameObject slice = Instantiate(hitSlashSliceVFXPrefab, contactPoint, sliceRot);
+                    GameObject slice = Instantiate(slicePrefabToSpawn, contactPoint, sliceRot);
                     Destroy(slice, 1.2f);
                 }
 
@@ -540,14 +552,9 @@ public class PlayerFight : MonoBehaviour
                 {
                     enemyAI.ApplyKnockback(knockbackDir, kDist, kDur);
                 }
-                else
+                else if (enemyHealth != null)
                 {
-                    EnemyHealth enemyHealth = hit.GetComponentInParent<EnemyHealth>();
-                    if (enemyHealth == null) enemyHealth = hit.GetComponent<EnemyHealth>();
-                    if (enemyHealth != null)
-                    {
-                        enemyHealth.ApplyKnockback(knockbackDir, kDist, kDur);
-                    }
+                    enemyHealth.ApplyKnockback(knockbackDir, kDist, kDur);
                 }
             }
         }

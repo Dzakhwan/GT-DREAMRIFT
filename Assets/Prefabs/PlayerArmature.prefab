@@ -2354,8 +2354,8 @@ MonoBehaviour:
   attackOrigin: {fileID: 6655110028070625958}
   autoDamageDelay: 0.28
   showDebugLogs: 0
-  hitImpactVFXPrefab: {fileID: 4625109239048288297, guid: b100fd0e97675a047a613d3f8612b787, type: 3}
-  hitSlashSliceVFXPrefab: {fileID: 8337929404812589894, guid: 4884cc370c5584341a5913d367eb0687, type: 3}
+  hitImpactVFXPrefab: {fileID: 8833475332926108294, guid: 8113d476792e3e049b33a5278d089f18, type: 3}
+  hitSlashSliceVFXPrefab: {fileID: 8219933811239210069, guid: 5e7cb79d748c9584780e1816302b5ef1, type: 3}
   slashArcVFXPrefab: {fileID: 4579344676633720227, guid: 26a52d8403e34d543a873f398fe5fff6, type: 3}
   enableSlashArcVFX: 0
   comboKnockbackDistances:
