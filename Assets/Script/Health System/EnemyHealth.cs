@@ -21,6 +21,13 @@ public class EnemyHealth : MonoBehaviour, IDamageable
     [Tooltip("Warna flash saat musuh terkena damage")]
     [SerializeField] private Color hitColor = Color.red;
     [SerializeField, Min(0f)] private float hitFlashDuration = 0.15f;
+    [Tooltip("Prefab efek benturan partikel khusus untuk musuh ini (misal: SlimeHit_VFX). Jika kosong, PlayerFight akan memakai default BloodHit_VFX.")]
+    [SerializeField] private GameObject customHitVFXPrefab;
+    [Tooltip("Prefab efek garis tebasan khusus untuk musuh ini (misal: SlimeSlashSlice_VFX). Jika kosong, PlayerFight akan memakai default BloodSlashSlice_VFX.")]
+    [SerializeField] private GameObject customSlashSliceVFXPrefab;
+
+    public GameObject CustomHitVFXPrefab => customHitVFXPrefab;
+    public GameObject CustomSlashSliceVFXPrefab => customSlashSliceVFXPrefab;
 
     [Header("Death Settings")]
     [Tooltip("Delay sebelum musuh dihancurkan setelah mati (beri waktu animasi)")]
