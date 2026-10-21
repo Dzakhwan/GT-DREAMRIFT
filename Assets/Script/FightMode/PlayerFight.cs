@@ -32,7 +32,10 @@ public class PlayerFight : MonoBehaviour
     [SerializeField] private float[] comboDamageMultipliers = { 1f, 1.2f, 1.5f };
 
     [Tooltip("Jangkauan hitbox serangan (radius dari attackOrigin)")]
-    [SerializeField] private float attackRange = 1.8f;
+    [SerializeField] private float attackRange = 3.5f;
+
+    [Tooltip("Pengali jangkauan hitbox per combo step (index 0 = tebasan 1, dst)")]
+    [SerializeField] private float[] comboRangeMultipliers = { 1f, 1.1f, 1.25f };
 
     [Tooltip("Layer musuh untuk filter Physics. Jika tidak pakai layer, kosongkan dan aktifkan Use Tag.")]
     [SerializeField] private LayerMask enemyLayer;
@@ -461,7 +464,15 @@ public class PlayerFight : MonoBehaviour
 
         Vector3 origin = (attackOrigin != null && attackOrigin != transform)
             ? attackOrigin.position
-            : transform.position + transform.forward * 0.9f + Vector3.up * 0.6f;
+            : transform.position + transform.forward * 1.2f + Vector3.up * 0.6f;
+
+        // Hitung jangkauan efektif dengan bonus combo step jika ada
+        float effectiveRange = attackRange;
+        if (comboRangeMultipliers != null && comboRangeMultipliers.Length > 0)
+        {
+            int rIdx = Mathf.Clamp(attackIndex - 1, 0, comboRangeMultipliers.Length - 1);
+            effectiveRange = attackRange * comboRangeMultipliers[rIdx];
+        }
 
         // Cari semua collider musuh dalam jangkauan hitbox
         Collider[] hits;
@@ -469,14 +480,14 @@ public class PlayerFight : MonoBehaviour
         if (useTagInstead)
         {
             // Mode Tag: ambil semua collider lalu filter by tag
-            hits = Physics.OverlapSphere(origin, attackRange);
+            hits = Physics.OverlapSphere(origin, effectiveRange);
         }
         else
         {
             int mask = enemyLayer.value != 0 ? enemyLayer.value : LayerMask.GetMask("Enemy");
             if (mask == 0) mask = ~0;
             // Mode Layer: langsung filter by layer
-            hits = Physics.OverlapSphere(origin, attackRange, mask);
+            hits = Physics.OverlapSphere(origin, effectiveRange, mask);
         }
 
         bool hitAnything = false;
@@ -648,8 +659,10 @@ public class PlayerFight : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        if (attackOrigin == null) return;
+        Vector3 origin = (attackOrigin != null && attackOrigin != transform)
+            ? attackOrigin.position
+            : transform.position + transform.forward * 1.2f + Vector3.up * 0.6f;
         Gizmos.color = new Color(1f, 0f, 0f, 0.4f);
-        Gizmos.DrawWireSphere(attackOrigin.position, attackRange);
+        Gizmos.DrawWireSphere(origin, attackRange);
     }
 }
