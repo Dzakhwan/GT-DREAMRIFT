@@ -3,8 +3,8 @@ name: WebGL Build 🤖
 on:
   push:
     branches:
-      - main
-      - develop
+      - DEV
+  workflow_dispatch:
 
 jobs:
   buildForWebGL:
