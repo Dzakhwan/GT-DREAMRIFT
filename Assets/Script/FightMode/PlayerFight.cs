@@ -32,7 +32,10 @@ public class PlayerFight : MonoBehaviour
     [SerializeField] private float[] comboDamageMultipliers = { 1f, 1.2f, 1.5f };
 
     [Tooltip("Jangkauan hitbox serangan (radius dari attackOrigin)")]
-    [SerializeField] private float attackRange = 1.8f;
+    [SerializeField] private float attackRange = 3.5f;
+
+    [Tooltip("Pengali jangkauan hitbox per combo step (index 0 = tebasan 1, dst)")]
+    [SerializeField] private float[] comboRangeMultipliers = { 1f, 1.1f, 1.25f };
 
     [Tooltip("Layer musuh untuk filter Physics. Jika tidak pakai layer, kosongkan dan aktifkan Use Tag.")]
     [SerializeField] private LayerMask enemyLayer;
@@ -60,11 +63,14 @@ public class PlayerFight : MonoBehaviour
     [Tooltip("Prefab efek garis tebasan slice darah (Blood Slash Slice VFX) pada tubuh musuh")]
     [SerializeField] private GameObject hitSlashSliceVFXPrefab;
 
-    [Tooltip("Prefab efek busur tebasan ayunan pedang di udara")]
+    [Tooltip("Prefab efek busur tebasan ayunan pedang di udara (default fallback)")]
     [SerializeField] private GameObject slashArcVFXPrefab;
 
+    [Tooltip("Prefab efek busur tebasan khusus per fase combo (Fase 1: Horizontal sweep, Fase 2: Reverse rising, Fase 3: Heavy finisher)")]
+    [SerializeField] private GameObject[] comboSlashVFXPrefabs = new GameObject[3];
+
     [Tooltip("Aktifkan efek busur sabetan pedang di udara saat mengayun")]
-    [SerializeField] private bool enableSlashArcVFX = false;
+    [SerializeField] private bool enableSlashArcVFX = true;
 
     [Header("Knockback Settings")]
     [Tooltip("Jarak dorongan knockback per combo step (meter)")]
@@ -155,7 +161,17 @@ public class PlayerFight : MonoBehaviour
         if (hitSlashSliceVFXPrefab == null)
             hitSlashSliceVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/BloodSlashSlice_VFX.prefab");
         if (slashArcVFXPrefab == null)
-            slashArcVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/SlashArc_VFX.prefab");
+            slashArcVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/SlashVFX_Phase1.prefab");
+
+        if (comboSlashVFXPrefabs == null || comboSlashVFXPrefabs.Length < 3)
+            comboSlashVFXPrefabs = new GameObject[3];
+
+        if (comboSlashVFXPrefabs[0] == null)
+            comboSlashVFXPrefabs[0] = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/SlashVFX_Phase1.prefab");
+        if (comboSlashVFXPrefabs[1] == null)
+            comboSlashVFXPrefabs[1] = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/SlashVFX_Phase2.prefab");
+        if (comboSlashVFXPrefabs[2] == null)
+            comboSlashVFXPrefabs[2] = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/SlashVFX_Phase3.prefab");
 #endif
     }
 
@@ -338,16 +354,22 @@ public class PlayerFight : MonoBehaviour
     {
         if (isAttacking)
         {
-            if (!isPreAttacking && comboWindowOpen && comboWindowTimer > 0f &&
-                attackIndex < maxComboSteps && !IsTransitioningOutOfAttack())
+            if (!isPreAttacking && attackIndex < maxComboSteps)
             {
                 int nextIndex = attackIndex + 1;
-                Debug.Log($"[PlayerFight] Combo accepted → attackIndex={nextIndex}");
+                if (showDebugLogs)
+                    Debug.Log($"[PlayerFight] Combo accepted → attackIndex={nextIndex}");
                 StartAttack(nextIndex);
             }
-            else
+            else if (IsTransitioningOutOfAttack())
             {
-                Debug.Log($"[PlayerFight] TryAttack blocked: comboWindowTimer={comboWindowTimer:F3} expired");
+                // Jika sedang transisi keluar dari attack, reset dan mulai serangan baru
+                ResetAttackState();
+                StartAttack(1);
+            }
+            else if (showDebugLogs)
+            {
+                Debug.Log($"[PlayerFight] TryAttack blocked: max combo reached or pre-attacking");
             }
             return;
         }
@@ -412,14 +434,79 @@ public class PlayerFight : MonoBehaviour
 
     private void SpawnSlashArcVisual(int comboStep)
     {
-        if (slashArcVFXPrefab == null) return;
+        float delay = 0f;
+        switch (comboStep)
+        {
+            case 1: delay = 0.03f; break;
+            case 2: delay = 0.10f; break;
+            case 3: delay = 0.30f; break; // Delayed to match Attack C release apex!
+        }
 
-        Vector3 spawnPos = transform.position + transform.forward * 1.0f + Vector3.up * 0.9f;
-        float rollAngle = comboStep == 1 ? 0f : (comboStep == 2 ? 45f : -45f);
-        Quaternion rot = transform.rotation * Quaternion.Euler(0f, 0f, rollAngle);
+        if (delay > 0f && gameObject.activeInHierarchy)
+        {
+            StartCoroutine(DelayedSlashVisualRoutine(delay, comboStep));
+        }
+        else
+        {
+            ExecuteSlashVFX(comboStep);
+        }
+    }
 
-        GameObject arc = Instantiate(slashArcVFXPrefab, spawnPos, rot);
-        Destroy(arc, 0.5f);
+    private System.Collections.IEnumerator DelayedSlashVisualRoutine(float delay, int comboStep)
+    {
+        yield return new WaitForSeconds(delay);
+        if (isAttacking && attackIndex == comboStep)
+        {
+            ExecuteSlashVFX(comboStep);
+        }
+    }
+
+    private void ExecuteSlashVFX(int comboStep)
+    {
+        // 1. Tentukan prefab yang sesuai dengan fase combo serangan
+        GameObject vfxToSpawn = null;
+        int phaseIndex = comboStep - 1;
+        if (comboSlashVFXPrefabs != null && phaseIndex >= 0 && phaseIndex < comboSlashVFXPrefabs.Length)
+        {
+            vfxToSpawn = comboSlashVFXPrefabs[phaseIndex];
+        }
+
+        // Fallback jika prefab fase belum di-assign
+        if (vfxToSpawn == null)
+        {
+            vfxToSpawn = slashArcVFXPrefab;
+        }
+
+        if (vfxToSpawn == null) return;
+
+        // 2. Tentukan posisi dan rotasi sesuai arah ayunan tiap fase combo (menyesuaikan kamera isometrik)
+        Vector3 spawnPos = transform.position + transform.forward * 1.3f + Vector3.up * 0.75f;
+        Quaternion rot;
+        float destroyDelay = 0.40f;
+
+        switch (comboStep)
+        {
+            case 1:
+                // Fase 1: Sapuan horizontal kanan ke kiri
+                rot = transform.rotation * Quaternion.Euler(70f, 0f, 5f);
+                destroyDelay = 0.32f;
+                break;
+            case 2:
+                // Fase 2: Ayunan menyilang naik dari kiri bawah ke kanan atas
+                rot = transform.rotation * Quaternion.Euler(60f, -15f, -30f);
+                destroyDelay = 0.35f;
+                break;
+            case 3:
+            default:
+                // Fase 3: Tebasan pamungkas berat (Sonic Gale Blast) lurus ke depan
+                spawnPos = transform.position + transform.forward * 1.5f + Vector3.up * 0.65f;
+                rot = transform.rotation * Quaternion.Euler(75f, 0f, 0f);
+                destroyDelay = 0.55f;
+                break;
+        }
+
+        GameObject arc = Instantiate(vfxToSpawn, spawnPos, rot);
+        Destroy(arc, destroyDelay);
     }
 
     private System.Collections.IEnumerator AutoDamageFallbackRoutine()
@@ -461,7 +548,15 @@ public class PlayerFight : MonoBehaviour
 
         Vector3 origin = (attackOrigin != null && attackOrigin != transform)
             ? attackOrigin.position
-            : transform.position + transform.forward * 0.9f + Vector3.up * 0.6f;
+            : transform.position + transform.forward * 1.2f + Vector3.up * 0.6f;
+
+        // Hitung jangkauan efektif dengan bonus combo step jika ada
+        float effectiveRange = attackRange;
+        if (comboRangeMultipliers != null && comboRangeMultipliers.Length > 0)
+        {
+            int rIdx = Mathf.Clamp(attackIndex - 1, 0, comboRangeMultipliers.Length - 1);
+            effectiveRange = attackRange * comboRangeMultipliers[rIdx];
+        }
 
         // Cari semua collider musuh dalam jangkauan hitbox
         Collider[] hits;
@@ -469,14 +564,14 @@ public class PlayerFight : MonoBehaviour
         if (useTagInstead)
         {
             // Mode Tag: ambil semua collider lalu filter by tag
-            hits = Physics.OverlapSphere(origin, attackRange);
+            hits = Physics.OverlapSphere(origin, effectiveRange);
         }
         else
         {
             int mask = enemyLayer.value != 0 ? enemyLayer.value : LayerMask.GetMask("Enemy");
             if (mask == 0) mask = ~0;
             // Mode Layer: langsung filter by layer
-            hits = Physics.OverlapSphere(origin, attackRange, mask);
+            hits = Physics.OverlapSphere(origin, effectiveRange, mask);
         }
 
         bool hitAnything = false;
@@ -648,8 +743,10 @@ public class PlayerFight : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        if (attackOrigin == null) return;
+        Vector3 origin = (attackOrigin != null && attackOrigin != transform)
+            ? attackOrigin.position
+            : transform.position + transform.forward * 1.2f + Vector3.up * 0.6f;
         Gizmos.color = new Color(1f, 0f, 0f, 0.4f);
-        Gizmos.DrawWireSphere(attackOrigin.position, attackRange);
+        Gizmos.DrawWireSphere(origin, attackRange);
     }
 }

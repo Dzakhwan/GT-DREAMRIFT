@@ -159,6 +159,10 @@ MonoBehaviour:
   deathVFXPrefab: {fileID: 0}
   lootPrefab: {fileID: 0}
   lootOffset: {x: 0, y: 0.5, z: 0}
+  dropCoins: 1
+  coinPrefab: {fileID: 7226633720955353084, guid: 2fb8f964470f791479c0f77cdc512b4d, type: 3}
+  minCoinDrop: 1
+  maxCoinDrop: 3
   onDamaged:
     m_PersistentCalls:
       m_Calls: []
