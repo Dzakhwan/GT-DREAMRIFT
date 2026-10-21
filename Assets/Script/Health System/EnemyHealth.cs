@@ -41,6 +41,16 @@ public class EnemyHealth : MonoBehaviour, IDamageable
     [Tooltip("Offset posisi drop loot dari posisi musuh")]
     [SerializeField] private Vector3 lootOffset = new Vector3(0, 0.5f, 0);
 
+    [Header("Coin Drops")]
+    [Tooltip("Aktifkan agar musuh menjatuhkan koin saat mati")]
+    [SerializeField] private bool dropCoins = true;
+    [Tooltip("Prefab koin yang dijatuhkan saat musuh mati (jika kosong, memakai CoinPickup default)")]
+    [SerializeField] private GameObject coinPrefab;
+    [Tooltip("Jumlah minimal koin yang di-drop")]
+    [SerializeField, Min(0)] private int minCoinDrop = 1;
+    [Tooltip("Jumlah maksimal koin yang di-drop")]
+    [SerializeField, Min(1)] private int maxCoinDrop = 3;
+
     [Header("Events")]
     [SerializeField] private UnityEvent onDamaged;
     [SerializeField] private UnityEvent onDeath;
@@ -192,6 +202,28 @@ public class EnemyHealth : MonoBehaviour, IDamageable
         // Drop loot jika ada
         if (lootPrefab != null)
             Instantiate(lootPrefab, transform.position + lootOffset, Quaternion.identity);
+
+        // Drop koin
+        if (dropCoins)
+        {
+            GameObject coinToSpawn = coinPrefab;
+            if (coinToSpawn == null)
+            {
+#if UNITY_EDITOR
+                coinToSpawn = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Coin/CoinPickup.prefab");
+#endif
+            }
+
+            if (coinToSpawn != null)
+            {
+                int count = Random.Range(minCoinDrop, maxCoinDrop + 1);
+                for (int i = 0; i < count; i++)
+                {
+                    Vector3 randomOffset = new Vector3(Random.Range(-0.8f, 0.8f), 0.5f, Random.Range(-0.8f, 0.8f));
+                    Instantiate(coinToSpawn, transform.position + randomOffset, Quaternion.identity);
+                }
+            }
+        }
 
         // Nonaktifkan komponen AI agar musuh berhenti bergerak
         var aiController = GetComponent<EnemyAIController>();

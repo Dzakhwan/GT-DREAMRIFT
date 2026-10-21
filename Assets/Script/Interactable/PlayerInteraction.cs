@@ -232,6 +232,7 @@ public class PlayerInteraction : MonoBehaviour
         if (mb is Dreamrift.QuestSystem.QuestTrigger qt) return qt.InteractRange;
         if (mb is ConversationStarter cs) return cs.InteractionRadius;
         if (mb is Dreamrift.InventorySystem.ItemPickup ip) return ip.InteractRange;
+        if (mb is Dreamrift.Checkpoint.CheckpointShrine shrine) return shrine.InteractRange;
         // Fallback: gunakan detectionRadius
         return detectionRadius;
     }
