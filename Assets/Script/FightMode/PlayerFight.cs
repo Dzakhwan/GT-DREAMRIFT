@@ -122,6 +122,8 @@ public class PlayerFight : MonoBehaviour
     private float attackFailsafeTimer;
     private bool hasDealtDamageThisAttack = false;
     private Coroutine autoDamageCoroutine;
+    private bool hasSpawnedVFXThisAttack = false;
+    private Coroutine autoVFXCoroutine;
 
     private static readonly int AttackAStateHash = Animator.StringToHash("Charged_Upward_Slash");
     private static readonly int AttackBStateHash = Animator.StringToHash("Armature_Sword_Regular_B");
@@ -421,43 +423,62 @@ public class PlayerFight : MonoBehaviour
             }
         }
 
-        // Spawn efek busur tebasan ayunan pedang di udara jika diaktifkan
+        // Reset status pemicuan VFX dan damage untuk serangan baru ini
+        hasSpawnedVFXThisAttack = false;
+        if (autoVFXCoroutine != null) StopCoroutine(autoVFXCoroutine);
         if (enableSlashArcVFX)
         {
-            SpawnSlashArcVisual(attackIndex);
+            autoVFXCoroutine = StartCoroutine(AutoVFXFallbackRoutine(attackIndex));
         }
 
         hasDealtDamageThisAttack = false;
         if (autoDamageCoroutine != null) StopCoroutine(autoDamageCoroutine);
-        autoDamageCoroutine = StartCoroutine(AutoDamageFallbackRoutine());
+        autoDamageCoroutine = StartCoroutine(AutoDamageFallbackRoutine(attackIndex));
     }
 
-    private void SpawnSlashArcVisual(int comboStep)
+    private System.Collections.IEnumerator AutoVFXFallbackRoutine(int comboStep)
     {
-        float delay = 0f;
+        float delay = GetVFXFallbackDelay(comboStep);
+        yield return new WaitForSeconds(delay);
+        if (isAttacking && attackIndex == comboStep && !hasSpawnedVFXThisAttack)
+        {
+            if (showDebugLogs)
+                Debug.Log($"[PlayerFight] Fallback VFX triggered for step {comboStep} after {delay:F2}s");
+            TriggerAttackVFX(comboStep);
+        }
+    }
+
+    private float GetVFXFallbackDelay(int comboStep)
+    {
         switch (comboStep)
         {
-            case 1: delay = 0.03f; break;
-            case 2: delay = 0.10f; break;
-            case 3: delay = 0.30f; break; // Delayed to match Attack C release apex!
-        }
-
-        if (delay > 0f && gameObject.activeInHierarchy)
-        {
-            StartCoroutine(DelayedSlashVisualRoutine(delay, comboStep));
-        }
-        else
-        {
-            ExecuteSlashVFX(comboStep);
+            case 1: return 0.47f; // Charged_Upward_Slash: apex riil 0.80s / speed 1.76 ≈ 0.455s
+            case 2: return 0.32f; // Armature_Sword_Regular_B: event di 0.30s
+            case 3: return 0.37f; // Armature_Sword_Regular_C: event di 0.35s
+            default: return 0.35f;
         }
     }
 
-    private System.Collections.IEnumerator DelayedSlashVisualRoutine(float delay, int comboStep)
+    private System.Collections.IEnumerator AutoDamageFallbackRoutine(int comboStep)
     {
+        float delay = GetDamageFallbackDelay(comboStep);
         yield return new WaitForSeconds(delay);
-        if (isAttacking && attackIndex == comboStep)
+        if (isAttacking && !hasDealtDamageThisAttack)
         {
-            ExecuteSlashVFX(comboStep);
+            if (showDebugLogs)
+                Debug.Log($"[PlayerFight] Fallback Damage triggered for step {comboStep} after {delay:F2}s");
+            DealDamage();
+        }
+    }
+
+    private float GetDamageFallbackDelay(int comboStep)
+    {
+        switch (comboStep)
+        {
+            case 1: return 0.52f; // Charged_Upward_Slash: hit frame di 0.85s / speed 1.76 ≈ 0.483s
+            case 2: return 0.38f; // Armature_Sword_Regular_B: hit frame di 0.35s
+            case 3: return 0.44f; // Armature_Sword_Regular_C: hit frame di 0.40s
+            default: return autoDamageDelay;
         }
     }
 
@@ -480,7 +501,11 @@ public class PlayerFight : MonoBehaviour
         if (vfxToSpawn == null) return;
 
         // 2. Tentukan posisi dan rotasi sesuai arah ayunan tiap fase combo (menyesuaikan kamera isometrik)
-        Vector3 spawnPos = transform.position + transform.forward * 1.3f + Vector3.up * 0.75f;
+        Vector3 originPos = (attackOrigin != null && attackOrigin != transform)
+            ? attackOrigin.position
+            : transform.position + transform.forward * 1.3f + Vector3.up * 0.75f;
+
+        Vector3 spawnPos = originPos;
         Quaternion rot;
         float destroyDelay = 0.40f;
 
@@ -488,20 +513,22 @@ public class PlayerFight : MonoBehaviour
         {
             case 1:
                 // Fase 1: Sapuan horizontal kanan ke kiri
+                spawnPos = originPos + transform.forward * 0.35f;
                 rot = transform.rotation * Quaternion.Euler(70f, 0f, 5f);
-                destroyDelay = 0.32f;
+                destroyDelay = 0.45f;
                 break;
             case 2:
                 // Fase 2: Ayunan menyilang naik dari kiri bawah ke kanan atas
+                spawnPos = originPos + transform.forward * 0.30f;
                 rot = transform.rotation * Quaternion.Euler(60f, -15f, -30f);
-                destroyDelay = 0.35f;
+                destroyDelay = 0.45f;
                 break;
             case 3:
             default:
                 // Fase 3: Tebasan pamungkas berat (Sonic Gale Blast) lurus ke depan
-                spawnPos = transform.position + transform.forward * 1.5f + Vector3.up * 0.65f;
+                spawnPos = originPos + transform.forward * 0.60f;
                 rot = transform.rotation * Quaternion.Euler(75f, 0f, 0f);
-                destroyDelay = 0.55f;
+                destroyDelay = 0.65f;
                 break;
         }
 
@@ -509,19 +536,44 @@ public class PlayerFight : MonoBehaviour
         Destroy(arc, destroyDelay);
     }
 
-    private System.Collections.IEnumerator AutoDamageFallbackRoutine()
-    {
-        yield return new WaitForSeconds(autoDamageDelay);
-        if (isAttacking && !hasDealtDamageThisAttack)
-        {
-            DealDamage();
-        }
-    }
-
     // ===================== ANIMATION EVENTS =====================
     // Method-method di bawah ini dipanggil dari Animation Event di Animator Unity.
     // Caranya: buka Animator window → pilih animasi → di timeline klik kanan → Add Event
     // → pilih fungsi yang sesuai.
+
+    /// <summary>
+    /// [ANIMATION EVENT] Pemicu efek visual tebasan wand pada frame ayunan yang tepat.
+    /// </summary>
+    public void TriggerAttackVFX()
+    {
+        TriggerAttackVFX(attackIndex);
+    }
+
+    /// <summary>
+    /// [ANIMATION EVENT] Pemicu efek visual tebasan wand dengan spesifik combo step.
+    /// </summary>
+    public void TriggerAttackVFX(int step)
+    {
+        if (hasSpawnedVFXThisAttack || !isAttacking) return;
+        hasSpawnedVFXThisAttack = true;
+
+        if (autoVFXCoroutine != null)
+        {
+            StopCoroutine(autoVFXCoroutine);
+            autoVFXCoroutine = null;
+        }
+
+        int targetStep = (step > 0) ? step : attackIndex;
+        if (targetStep <= 0) targetStep = 1;
+
+        if (showDebugLogs)
+            Debug.Log($"[PlayerFight] TriggerAttackVFX via Animation Event → step={targetStep}");
+
+        if (enableSlashArcVFX)
+        {
+            ExecuteSlashVFX(targetStep);
+        }
+    }
 
     /// <summary>
     /// [ANIMATION EVENT] Panggil method ini di frame tepat pukulan mendarat di animasi.
@@ -713,6 +765,13 @@ public class PlayerFight : MonoBehaviour
         attackFailsafeTimer = 0f;
 
         Debug.Log("[PlayerFight] Attack state reset.");
+
+        if (autoVFXCoroutine != null)
+        {
+            StopCoroutine(autoVFXCoroutine);
+            autoVFXCoroutine = null;
+        }
+        hasSpawnedVFXThisAttack = false;
 
         if (autoDamageCoroutine != null)
         {

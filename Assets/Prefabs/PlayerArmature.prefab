@@ -2357,7 +2357,7 @@ MonoBehaviour:
   hitImpactVFXPrefab: {fileID: 8833475332926108294, guid: 8113d476792e3e049b33a5278d089f18, type: 3}
   hitSlashSliceVFXPrefab: {fileID: 8219933811239210069, guid: 5e7cb79d748c9584780e1816302b5ef1, type: 3}
   slashArcVFXPrefab: {fileID: 4579344676633720227, guid: 26a52d8403e34d543a873f398fe5fff6, type: 3}
-  enableSlashArcVFX: 0
+  enableSlashArcVFX: 1
   comboKnockbackDistances:
   - 1.2
   - 2
