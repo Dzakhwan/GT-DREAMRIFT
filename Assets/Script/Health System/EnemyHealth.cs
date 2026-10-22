@@ -21,6 +21,13 @@ public class EnemyHealth : MonoBehaviour, IDamageable
     [Tooltip("Warna flash saat musuh terkena damage")]
     [SerializeField] private Color hitColor = Color.red;
     [SerializeField, Min(0f)] private float hitFlashDuration = 0.15f;
+    [Tooltip("Prefab efek benturan partikel khusus untuk musuh ini (misal: SlimeHit_VFX). Jika kosong, PlayerFight akan memakai default BloodHit_VFX.")]
+    [SerializeField] private GameObject customHitVFXPrefab;
+    [Tooltip("Prefab efek garis tebasan khusus untuk musuh ini (misal: SlimeSlashSlice_VFX). Jika kosong, PlayerFight akan memakai default BloodSlashSlice_VFX.")]
+    [SerializeField] private GameObject customSlashSliceVFXPrefab;
+
+    public GameObject CustomHitVFXPrefab => customHitVFXPrefab;
+    public GameObject CustomSlashSliceVFXPrefab => customSlashSliceVFXPrefab;
 
     [Header("Death Settings")]
     [Tooltip("Delay sebelum musuh dihancurkan setelah mati (beri waktu animasi)")]
@@ -33,6 +40,16 @@ public class EnemyHealth : MonoBehaviour, IDamageable
     [SerializeField] private GameObject lootPrefab;
     [Tooltip("Offset posisi drop loot dari posisi musuh")]
     [SerializeField] private Vector3 lootOffset = new Vector3(0, 0.5f, 0);
+
+    [Header("Coin Drops")]
+    [Tooltip("Aktifkan agar musuh menjatuhkan koin saat mati")]
+    [SerializeField] private bool dropCoins = true;
+    [Tooltip("Prefab koin yang dijatuhkan saat musuh mati (jika kosong, memakai CoinPickup default)")]
+    [SerializeField] private GameObject coinPrefab;
+    [Tooltip("Jumlah minimal koin yang di-drop")]
+    [SerializeField, Min(0)] private int minCoinDrop = 1;
+    [Tooltip("Jumlah maksimal koin yang di-drop")]
+    [SerializeField, Min(1)] private int maxCoinDrop = 3;
 
     [Header("Events")]
     [SerializeField] private UnityEvent onDamaged;
@@ -74,6 +91,27 @@ public class EnemyHealth : MonoBehaviour, IDamageable
         currentHealth = maxHealth;
         UpdateHealthBar();
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
+
+        // Tampilkan health bar di atas kepala musuh sejak awal
+        StartCoroutine(InitHealthBarCoroutine());
+    }
+
+    private void OnDisable()
+    {
+        if (usePooledHealthBar && EnemyHealthBarPool.Instance != null)
+        {
+            EnemyHealthBarPool.Instance.HideHealthBar(transform);
+        }
+    }
+
+    private IEnumerator InitHealthBarCoroutine()
+    {
+        // Tunggu hingga frame berikutnya agar pool manager sudah selesai Awake/Start
+        yield return null;
+        if (usePooledHealthBar && EnemyHealthBarPool.Instance != null && !isDead)
+        {
+            EnemyHealthBarPool.Instance.ShowHealthBar(transform, currentHealth, maxHealth);
+        }
     }
 
     // ===================== IDamageable =====================
@@ -119,6 +157,18 @@ public class EnemyHealth : MonoBehaviour, IDamageable
         Die();
     }
 
+    /// <summary>
+    /// Meneruskan knockback ke EnemyAIController jika terpasang.
+    /// </summary>
+    public void ApplyKnockback(Vector3 direction, float distance, float duration = 0.2f)
+    {
+        var ai = GetComponent<EnemyAIController>();
+        if (ai != null)
+        {
+            ai.ApplyKnockback(direction, distance, duration);
+        }
+    }
+
     // ===================== PRIVATE METHODS =====================
 
     [Header("Quest Integration")]
@@ -152,6 +202,28 @@ public class EnemyHealth : MonoBehaviour, IDamageable
         // Drop loot jika ada
         if (lootPrefab != null)
             Instantiate(lootPrefab, transform.position + lootOffset, Quaternion.identity);
+
+        // Drop koin
+        if (dropCoins)
+        {
+            GameObject coinToSpawn = coinPrefab;
+            if (coinToSpawn == null)
+            {
+#if UNITY_EDITOR
+                coinToSpawn = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Coin/CoinPickup.prefab");
+#endif
+            }
+
+            if (coinToSpawn != null)
+            {
+                int count = Random.Range(minCoinDrop, maxCoinDrop + 1);
+                for (int i = 0; i < count; i++)
+                {
+                    Vector3 randomOffset = new Vector3(Random.Range(-0.8f, 0.8f), 0.5f, Random.Range(-0.8f, 0.8f));
+                    Instantiate(coinToSpawn, transform.position + randomOffset, Quaternion.identity);
+                }
+            }
+        }
 
         // Nonaktifkan komponen AI agar musuh berhenti bergerak
         var aiController = GetComponent<EnemyAIController>();

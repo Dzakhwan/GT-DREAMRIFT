@@ -125,10 +125,10 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.5
-  m_Speed: 3.5
-  m_Acceleration: 8
+  m_Speed: 1.8
+  m_Acceleration: 4
   avoidancePriority: 50
-  m_AngularSpeed: 120
+  m_AngularSpeed: 100
   m_StoppingDistance: 0
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
@@ -153,16 +153,23 @@ MonoBehaviour:
   usePooledHealthBar: 1
   hitColor: {r: 1, g: 0, b: 0, a: 1}
   hitFlashDuration: 0.15
+  customHitVFXPrefab: {fileID: 7108166642338909080, guid: 9c28658abf336564a95479e7a8d82802, type: 3}
+  customSlashSliceVFXPrefab: {fileID: 7281761618274486959, guid: 3ecb510344b5d064c9299b9290b30fde, type: 3}
   deathDelay: 0.5
   deathVFXPrefab: {fileID: 0}
   lootPrefab: {fileID: 0}
   lootOffset: {x: 0, y: 0.5, z: 0}
+  dropCoins: 1
+  coinPrefab: {fileID: 7226633720955353084, guid: 2fb8f964470f791479c0f77cdc512b4d, type: 3}
+  minCoinDrop: 1
+  maxCoinDrop: 3
   onDamaged:
     m_PersistentCalls:
       m_Calls: []
   onDeath:
     m_PersistentCalls:
       m_Calls: []
+  enemyId: Slime
 --- !u!114 &807082444925911091
 MonoBehaviour:
   m_ObjectHideFlags: 0

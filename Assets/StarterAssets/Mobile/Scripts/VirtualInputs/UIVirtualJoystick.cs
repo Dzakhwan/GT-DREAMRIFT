@@ -14,7 +14,9 @@ public class UIVirtualJoystick : MonoBehaviour, IPointerDownHandler, IDragHandle
     [Header("Settings")]
     public float joystickRange = 50f;
     public float magnitudeMultiplier = 1f;
+    [Tooltip("Membalik nilai output sumbu X.")]
     public bool invertXOutputValue;
+    [Tooltip("Membalik nilai output sumbu Y. PENTING: Umumnya hanya digunakan untuk Joystick Kamera (Look). JANGAN dicentang untuk Joystick Pergerakan (Move) agar karakter tidak berjalan terbalik.")]
     public bool invertYOutputValue;
 
     [Header("Output")]

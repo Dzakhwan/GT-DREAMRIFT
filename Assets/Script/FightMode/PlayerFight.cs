@@ -32,7 +32,10 @@ public class PlayerFight : MonoBehaviour
     [SerializeField] private float[] comboDamageMultipliers = { 1f, 1.2f, 1.5f };
 
     [Tooltip("Jangkauan hitbox serangan (radius dari attackOrigin)")]
-    [SerializeField] private float attackRange = 1.8f;
+    [SerializeField] private float attackRange = 3.5f;
+
+    [Tooltip("Pengali jangkauan hitbox per combo step (index 0 = tebasan 1, dst)")]
+    [SerializeField] private float[] comboRangeMultipliers = { 1f, 1.1f, 1.25f };
 
     [Tooltip("Layer musuh untuk filter Physics. Jika tidak pakai layer, kosongkan dan aktifkan Use Tag.")]
     [SerializeField] private LayerMask enemyLayer;
@@ -45,6 +48,59 @@ public class PlayerFight : MonoBehaviour
 
     [Tooltip("Titik pusat hitbox serangan. Jika kosong, pakai posisi Player.")]
     [SerializeField] private Transform attackOrigin;
+
+    [Tooltip("Waktu delay otomatis untuk eksekusi damage jika animasi tidak memicu Animation Event (fallback).")]
+    [SerializeField] private float autoDamageDelay = 0.28f;
+
+    [Tooltip("Tampilkan log detail pertarungan di Console (matikan untuk performa optimal).")]
+    [SerializeField] private bool showDebugLogs = false;
+
+    // ===================== COMBAT VFX & KNOCKBACK =====================
+    [Header("Combat VFX")]
+    [Tooltip("Prefab efek benturan partikel darah (Blood Hit VFX) saat mengenai musuh")]
+    [SerializeField] private GameObject hitImpactVFXPrefab;
+
+    [Tooltip("Prefab efek garis tebasan slice darah (Blood Slash Slice VFX) pada tubuh musuh")]
+    [SerializeField] private GameObject hitSlashSliceVFXPrefab;
+
+    [Tooltip("Prefab efek busur tebasan ayunan pedang di udara (default fallback)")]
+    [SerializeField] private GameObject slashArcVFXPrefab;
+
+    [Tooltip("Prefab efek busur tebasan khusus per fase combo (Fase 1: Horizontal sweep, Fase 2: Reverse rising, Fase 3: Heavy finisher)")]
+    [SerializeField] private GameObject[] comboSlashVFXPrefabs = new GameObject[3];
+
+    [Tooltip("Aktifkan efek busur sabetan pedang di udara saat mengayun")]
+    [SerializeField] private bool enableSlashArcVFX = true;
+
+    [Header("Knockback Settings")]
+    [Tooltip("Jarak dorongan knockback per combo step (meter)")]
+    [SerializeField] private float[] comboKnockbackDistances = { 1.2f, 2.0f, 3.8f };
+
+    [Tooltip("Durasi dorongan knockback per combo step (detik)")]
+    [SerializeField] private float[] comboKnockbackDurations = { 0.15f, 0.20f, 0.30f };
+
+    // ===================== WEAPON (STAFF) SETTINGS =====================
+    [Header("Staff Weapon Settings")]
+    [Tooltip("Prefab/model tongkat (FBX)")]
+    [SerializeField] private GameObject staffPrefab;
+
+    [Tooltip("Material URP Lit untuk tongkat")]
+    [SerializeField] private Material staffMaterial;
+
+    [Tooltip("Aktifkan auto-attach tongkat ke tangan kanan saat Start")]
+    [SerializeField] private bool autoAttachStaff = true;
+
+    [Tooltip("Offset posisi tongkat di telapak tangan kanan")]
+    [SerializeField] private Vector3 staffGripPosition = new Vector3(0.0f, 0.075f, 0.005f);
+
+    [Tooltip("Offset rotasi tongkat di telapak tangan kanan")]
+    [SerializeField] private Vector3 staffGripRotation = new Vector3(0f, 0f, 90f);
+
+    [Tooltip("Skala tongkat agar proporsional")]
+    [SerializeField] private Vector3 staffGripScale = new Vector3(0.7f, 0.7f, 0.7f);
+
+    [Tooltip("Offset posisi model tongkat di dalam socket (maju ke depan/bawah genggaman)")]
+    [SerializeField] private Vector3 staffModelOffset = new Vector3(0f, 0.30f, 0f);
 
     // ===================== MOBILE BUTTON =====================
     [Header("Mobile Input")]
@@ -64,6 +120,8 @@ public class PlayerFight : MonoBehaviour
     private bool isPreAttacking;
     private float preAttackTimer;
     private float attackFailsafeTimer;
+    private bool hasDealtDamageThisAttack = false;
+    private Coroutine autoDamageCoroutine;
 
     private static readonly int AttackAStateHash = Animator.StringToHash("Charged_Upward_Slash");
     private static readonly int AttackBStateHash = Animator.StringToHash("Armature_Sword_Regular_B");
@@ -86,6 +144,9 @@ public class PlayerFight : MonoBehaviour
 
     private void Start()
     {
+        // Pasangkan tongkat ke tangan kanan jika belum ada
+        EnsureStaffEquipped();
+
         // Gunakan posisi Player jika attackOrigin tidak di-assign
         if (attackOrigin == null)
             attackOrigin = transform;
@@ -93,6 +154,121 @@ public class PlayerFight : MonoBehaviour
         // Daftarkan tombol attack untuk mobile
         if (attackButton != null)
             attackButton.onClick.AddListener(OnAttackButtonPressed);
+
+#if UNITY_EDITOR
+        if (hitImpactVFXPrefab == null)
+            hitImpactVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/BloodHit_VFX.prefab");
+        if (hitSlashSliceVFXPrefab == null)
+            hitSlashSliceVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/BloodSlashSlice_VFX.prefab");
+        if (slashArcVFXPrefab == null)
+            slashArcVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/SlashVFX_Phase1.prefab");
+
+        if (comboSlashVFXPrefabs == null || comboSlashVFXPrefabs.Length < 3)
+            comboSlashVFXPrefabs = new GameObject[3];
+
+        if (comboSlashVFXPrefabs[0] == null)
+            comboSlashVFXPrefabs[0] = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/SlashVFX_Phase1.prefab");
+        if (comboSlashVFXPrefabs[1] == null)
+            comboSlashVFXPrefabs[1] = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/SlashVFX_Phase2.prefab");
+        if (comboSlashVFXPrefabs[2] == null)
+            comboSlashVFXPrefabs[2] = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/SlashVFX_Phase3.prefab");
+#endif
+    }
+
+    private void EnsureStaffEquipped()
+    {
+        if (!autoAttachStaff) return;
+
+        // Cari tulang tangan kanan humanoid yang aktif dan teranimasi
+        Transform rightHand = null;
+        if (animator != null)
+        {
+            rightHand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+        }
+        if (rightHand == null)
+        {
+            rightHand = FindDeepChild(transform, "RightHand");
+        }
+        if (rightHand == null)
+        {
+            rightHand = FindDeepChild(transform, "Right_Hand");
+        }
+        if (rightHand == null) return;
+
+        // Bersihkan socket lama yang mungkin salah terpasang di skeleton dummy/lainnya
+        foreach (var t in GetComponentsInChildren<Transform>(true))
+        {
+            if (t != null && t.name == "Staff_Socket" && t.parent != rightHand)
+            {
+                Destroy(t.gameObject);
+            }
+        }
+
+        Transform existingSocket = rightHand.Find("Staff_Socket");
+        if (existingSocket != null)
+        {
+            existingSocket.localPosition = staffGripPosition;
+            existingSocket.localRotation = Quaternion.Euler(staffGripRotation);
+            existingSocket.localScale = staffGripScale;
+
+            Transform existingModel = existingSocket.Find("Meshy_Crystal_Crescent_Staff");
+            if (existingModel != null)
+            {
+                existingModel.localPosition = staffModelOffset;
+            }
+
+            Transform tip = existingSocket.Find("StaffTip_AttackOrigin");
+            if (tip != null)
+            {
+                tip.localPosition = new Vector3(0f, 0.95f + staffModelOffset.y, 0f);
+                if (attackOrigin == null) attackOrigin = tip;
+            }
+            return;
+        }
+
+#if UNITY_EDITOR
+        if (staffPrefab == null)
+            staffPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ASSET/Meshy_AI_Crystal_Crescent_Staf_1018145354_texture_fbx/Meshy_AI_Crystal_Crescent_Staf_1018145354_texture_fbx/Meshy_AI_Crystal_Crescent_Staf_1018145354_texture.fbx");
+        if (staffMaterial == null)
+            staffMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/ASSET/Meshy_AI_Crystal_Crescent_Staf_1018145354_texture_fbx/Materials/M_CrystalCrescentStaff.mat");
+#endif
+
+        if (staffPrefab == null) return;
+
+        GameObject socketObj = new GameObject("Staff_Socket");
+        socketObj.transform.SetParent(rightHand, false);
+        socketObj.transform.localPosition = staffGripPosition;
+        socketObj.transform.localRotation = Quaternion.Euler(staffGripRotation);
+        socketObj.transform.localScale = staffGripScale;
+
+        GameObject staffInst = Instantiate(staffPrefab, socketObj.transform);
+        staffInst.name = "Meshy_Crystal_Crescent_Staff";
+        staffInst.transform.localPosition = staffModelOffset;
+        staffInst.transform.localRotation = Quaternion.Euler(270f, 0f, 0f);
+
+        if (staffMaterial != null)
+        {
+            foreach (Renderer r in staffInst.GetComponentsInChildren<Renderer>(true))
+            {
+                r.sharedMaterial = staffMaterial;
+            }
+        }
+
+        GameObject tipObj = new GameObject("StaffTip_AttackOrigin");
+        tipObj.transform.SetParent(socketObj.transform, false);
+        tipObj.transform.localPosition = new Vector3(0f, 0.95f + staffModelOffset.y, 0f);
+        attackOrigin = tipObj.transform;
+    }
+
+    private Transform FindDeepChild(Transform parent, string name)
+    {
+        if (parent.name == name) return parent;
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform result = FindDeepChild(parent.GetChild(i), name);
+            if (result != null) return result;
+        }
+        return null;
     }
 
     private void Update()
@@ -178,16 +354,22 @@ public class PlayerFight : MonoBehaviour
     {
         if (isAttacking)
         {
-            if (!isPreAttacking && comboWindowOpen && comboWindowTimer > 0f &&
-                attackIndex < maxComboSteps && !IsTransitioningOutOfAttack())
+            if (!isPreAttacking && attackIndex < maxComboSteps)
             {
                 int nextIndex = attackIndex + 1;
-                Debug.Log($"[PlayerFight] Combo accepted → attackIndex={nextIndex}");
+                if (showDebugLogs)
+                    Debug.Log($"[PlayerFight] Combo accepted → attackIndex={nextIndex}");
                 StartAttack(nextIndex);
             }
-            else
+            else if (IsTransitioningOutOfAttack())
             {
-                Debug.Log($"[PlayerFight] TryAttack blocked: comboWindowTimer={comboWindowTimer:F3} expired");
+                // Jika sedang transisi keluar dari attack, reset dan mulai serangan baru
+                ResetAttackState();
+                StartAttack(1);
+            }
+            else if (showDebugLogs)
+            {
+                Debug.Log($"[PlayerFight] TryAttack blocked: max combo reached or pre-attacking");
             }
             return;
         }
@@ -202,10 +384,11 @@ public class PlayerFight : MonoBehaviour
         if (tpc != null)
         {
             tpc._isAttacking = true;
-            tpc._lockRotation = false;
+            tpc._lockRotation = false; // Saat pre-attack player masih bisa rotasi ke arah musuh/input
         }
 
-        Debug.Log($"[PlayerFight] Pre-attack dimulai, delay={preAttackDelay:F2}s");
+        if (showDebugLogs)
+            Debug.Log($"[PlayerFight] Pre-attack dimulai, delay={preAttackDelay:F2}s");
     }
 
     // Memulai serangan dengan combo index tertentu.
@@ -219,12 +402,13 @@ public class PlayerFight : MonoBehaviour
         comboWindowTimer = 0f;
         attackFailsafeTimer = Mathf.Max(0.1f, attackFailsafeDuration);
 
-        Debug.Log($"[PlayerFight] StartAttack → attackIndex={attackIndex}");
+        if (showDebugLogs)
+            Debug.Log($"[PlayerFight] StartAttack → attackIndex={attackIndex}");
 
         if (tpc != null)
         {
             tpc._isAttacking = true;
-            tpc._lockRotation = true;
+            tpc._lockRotation = true; // Kunci rotasi & aktifkan root motion pada OnAnimatorMove
         }
 
         if (animator != null)
@@ -235,6 +419,102 @@ public class PlayerFight : MonoBehaviour
                 animator.ResetTrigger("Attack");
                 animator.SetTrigger("Attack");
             }
+        }
+
+        // Spawn efek busur tebasan ayunan pedang di udara jika diaktifkan
+        if (enableSlashArcVFX)
+        {
+            SpawnSlashArcVisual(attackIndex);
+        }
+
+        hasDealtDamageThisAttack = false;
+        if (autoDamageCoroutine != null) StopCoroutine(autoDamageCoroutine);
+        autoDamageCoroutine = StartCoroutine(AutoDamageFallbackRoutine());
+    }
+
+    private void SpawnSlashArcVisual(int comboStep)
+    {
+        float delay = 0f;
+        switch (comboStep)
+        {
+            case 1: delay = 0.03f; break;
+            case 2: delay = 0.10f; break;
+            case 3: delay = 0.30f; break; // Delayed to match Attack C release apex!
+        }
+
+        if (delay > 0f && gameObject.activeInHierarchy)
+        {
+            StartCoroutine(DelayedSlashVisualRoutine(delay, comboStep));
+        }
+        else
+        {
+            ExecuteSlashVFX(comboStep);
+        }
+    }
+
+    private System.Collections.IEnumerator DelayedSlashVisualRoutine(float delay, int comboStep)
+    {
+        yield return new WaitForSeconds(delay);
+        if (isAttacking && attackIndex == comboStep)
+        {
+            ExecuteSlashVFX(comboStep);
+        }
+    }
+
+    private void ExecuteSlashVFX(int comboStep)
+    {
+        // 1. Tentukan prefab yang sesuai dengan fase combo serangan
+        GameObject vfxToSpawn = null;
+        int phaseIndex = comboStep - 1;
+        if (comboSlashVFXPrefabs != null && phaseIndex >= 0 && phaseIndex < comboSlashVFXPrefabs.Length)
+        {
+            vfxToSpawn = comboSlashVFXPrefabs[phaseIndex];
+        }
+
+        // Fallback jika prefab fase belum di-assign
+        if (vfxToSpawn == null)
+        {
+            vfxToSpawn = slashArcVFXPrefab;
+        }
+
+        if (vfxToSpawn == null) return;
+
+        // 2. Tentukan posisi dan rotasi sesuai arah ayunan tiap fase combo (menyesuaikan kamera isometrik)
+        Vector3 spawnPos = transform.position + transform.forward * 1.3f + Vector3.up * 0.75f;
+        Quaternion rot;
+        float destroyDelay = 0.40f;
+
+        switch (comboStep)
+        {
+            case 1:
+                // Fase 1: Sapuan horizontal kanan ke kiri
+                rot = transform.rotation * Quaternion.Euler(70f, 0f, 5f);
+                destroyDelay = 0.32f;
+                break;
+            case 2:
+                // Fase 2: Ayunan menyilang naik dari kiri bawah ke kanan atas
+                rot = transform.rotation * Quaternion.Euler(60f, -15f, -30f);
+                destroyDelay = 0.35f;
+                break;
+            case 3:
+            default:
+                // Fase 3: Tebasan pamungkas berat (Sonic Gale Blast) lurus ke depan
+                spawnPos = transform.position + transform.forward * 1.5f + Vector3.up * 0.65f;
+                rot = transform.rotation * Quaternion.Euler(75f, 0f, 0f);
+                destroyDelay = 0.55f;
+                break;
+        }
+
+        GameObject arc = Instantiate(vfxToSpawn, spawnPos, rot);
+        Destroy(arc, destroyDelay);
+    }
+
+    private System.Collections.IEnumerator AutoDamageFallbackRoutine()
+    {
+        yield return new WaitForSeconds(autoDamageDelay);
+        if (isAttacking && !hasDealtDamageThisAttack)
+        {
+            DealDamage();
         }
     }
 
@@ -249,12 +529,34 @@ public class PlayerFight : MonoBehaviour
     /// </summary>
     public void DealDamage()
     {
+        if (hasDealtDamageThisAttack) return;
+        hasDealtDamageThisAttack = true;
+
+        if (autoDamageCoroutine != null)
+        {
+            StopCoroutine(autoDamageCoroutine);
+            autoDamageCoroutine = null;
+        }
+
         // Hitung damage final berdasarkan combo step saat ini
         int finalDamage = baseDamage;
         int comboIndex = Mathf.Clamp(attackIndex - 1, 0, comboDamageMultipliers.Length - 1);
         finalDamage = Mathf.RoundToInt(baseDamage * comboDamageMultipliers[comboIndex]);
 
-        Debug.Log($"[PlayerFight] DealDamage dipanggil. Combo step {attackIndex}, damage: {finalDamage}");
+        if (showDebugLogs)
+            Debug.Log($"[PlayerFight] DealDamage dipanggil. Combo step {attackIndex}, damage: {finalDamage}");
+
+        Vector3 origin = (attackOrigin != null && attackOrigin != transform)
+            ? attackOrigin.position
+            : transform.position + transform.forward * 1.2f + Vector3.up * 0.6f;
+
+        // Hitung jangkauan efektif dengan bonus combo step jika ada
+        float effectiveRange = attackRange;
+        if (comboRangeMultipliers != null && comboRangeMultipliers.Length > 0)
+        {
+            int rIdx = Mathf.Clamp(attackIndex - 1, 0, comboRangeMultipliers.Length - 1);
+            effectiveRange = attackRange * comboRangeMultipliers[rIdx];
+        }
 
         // Cari semua collider musuh dalam jangkauan hitbox
         Collider[] hits;
@@ -262,33 +564,97 @@ public class PlayerFight : MonoBehaviour
         if (useTagInstead)
         {
             // Mode Tag: ambil semua collider lalu filter by tag
-            hits = Physics.OverlapSphere(attackOrigin.position, attackRange);
+            hits = Physics.OverlapSphere(origin, effectiveRange);
         }
         else
         {
-            // Mode Layer: langsung filter by layer (lebih efisien)
-            hits = Physics.OverlapSphere(attackOrigin.position, attackRange, enemyLayer);
+            int mask = enemyLayer.value != 0 ? enemyLayer.value : LayerMask.GetMask("Enemy");
+            if (mask == 0) mask = ~0;
+            // Mode Layer: langsung filter by layer
+            hits = Physics.OverlapSphere(origin, effectiveRange, mask);
         }
 
         bool hitAnything = false;
+        var damagedSet = new System.Collections.Generic.HashSet<IDamageable>();
+
         foreach (Collider hit in hits)
         {
             // Lewati diri sendiri
-            if (hit.gameObject == gameObject) continue;
+            if (hit.gameObject == gameObject || hit.transform.IsChildOf(transform)) continue;
 
             // Jika mode tag, filter di sini
             if (useTagInstead && !hit.CompareTag(enemyTag)) continue;
 
-            // Berikan damage jika objek implementasi IDamageable
-            if (hit.TryGetComponent(out IDamageable damageable))
+            // Berikan damage jika objek implementasi IDamageable (cek di collider atau parent-nya)
+            IDamageable damageable = hit.GetComponentInParent<IDamageable>();
+            if (damageable == null)
+                damageable = hit.GetComponent<IDamageable>();
+
+            if (damageable != null && damagedSet.Add(damageable))
             {
                 damageable.TakeDamage(finalDamage);
-                Debug.Log($"[PlayerFight] Mengenai {hit.name} sebesar {finalDamage} damage!");
+                if (showDebugLogs)
+                    Debug.Log($"[PlayerFight] Mengenai {hit.name} sebesar {finalDamage} damage!");
                 hitAnything = true;
+
+                // Cek referensi EnemyHealth untuk custom VFX per tipe musuh (misal: Slime)
+                EnemyHealth enemyHealth = hit.GetComponentInParent<EnemyHealth>();
+                if (enemyHealth == null) enemyHealth = hit.GetComponent<EnemyHealth>();
+
+                // 1. Hit Impact Blood / Splatter VFX
+                Vector3 contactPoint = hit.ClosestPoint(origin);
+                Vector3 hitNormal = (contactPoint - origin);
+                if (hitNormal.sqrMagnitude < 0.001f) hitNormal = transform.forward;
+                hitNormal.Normalize();
+
+                GameObject impactPrefabToSpawn = (enemyHealth != null && enemyHealth.CustomHitVFXPrefab != null)
+                    ? enemyHealth.CustomHitVFXPrefab
+                    : hitImpactVFXPrefab;
+
+                if (impactPrefabToSpawn != null)
+                {
+                    GameObject impact = Instantiate(impactPrefabToSpawn, contactPoint, Quaternion.LookRotation(hitNormal));
+                    Destroy(impact, 1.2f);
+                }
+
+                // 2. Damage Hit Slash Slice Cut VFX
+                GameObject slicePrefabToSpawn = (enemyHealth != null && enemyHealth.CustomSlashSliceVFXPrefab != null)
+                    ? enemyHealth.CustomSlashSliceVFXPrefab
+                    : hitSlashSliceVFXPrefab;
+
+                if (slicePrefabToSpawn != null)
+                {
+                    float sliceAngle = attackIndex == 1 ? 0f : (attackIndex == 2 ? -35f : 65f);
+                    Quaternion sliceRot = Quaternion.LookRotation(transform.forward) * Quaternion.Euler(0f, 0f, sliceAngle);
+                    GameObject slice = Instantiate(slicePrefabToSpawn, contactPoint, sliceRot);
+                    Destroy(slice, 1.2f);
+                }
+
+                // 3. Knockback Physics pada musuh
+                Vector3 knockbackDir = (hit.transform.position - transform.position);
+                knockbackDir.y = 0f;
+                if (knockbackDir.sqrMagnitude < 0.001f) knockbackDir = transform.forward;
+                knockbackDir.Normalize();
+
+                int kIndex = Mathf.Clamp(attackIndex - 1, 0, comboKnockbackDistances.Length - 1);
+                float kDist = comboKnockbackDistances[kIndex];
+                float kDur = comboKnockbackDurations[kIndex];
+
+                EnemyAIController enemyAI = hit.GetComponentInParent<EnemyAIController>();
+                if (enemyAI == null) enemyAI = hit.GetComponent<EnemyAIController>();
+
+                if (enemyAI != null)
+                {
+                    enemyAI.ApplyKnockback(knockbackDir, kDist, kDur);
+                }
+                else if (enemyHealth != null)
+                {
+                    enemyHealth.ApplyKnockback(knockbackDir, kDist, kDur);
+                }
             }
         }
 
-        if (!hitAnything)
+        if (!hitAnything && showDebugLogs)
             Debug.Log("[PlayerFight] Serangan tidak mengenai musuh apapun.");
     }
 
@@ -302,7 +668,8 @@ public class PlayerFight : MonoBehaviour
 
         comboWindowOpen = true;
         comboWindowTimer = comboWindowDuration;
-        Debug.Log($"[PlayerFight] OpenComboWindow → comboWindowTimer={comboWindowTimer:F3}");
+        if (showDebugLogs)
+            Debug.Log($"[PlayerFight] OpenComboWindow → comboWindowTimer={comboWindowTimer:F3}");
     }
 
     /// <summary>
@@ -317,7 +684,8 @@ public class PlayerFight : MonoBehaviour
             return;
         }
 
-        Debug.Log($"[PlayerFight] CloseAttack called → attackIndex={attackIndex}");
+        if (showDebugLogs)
+            Debug.Log($"[PlayerFight] CloseAttack called → attackIndex={attackIndex}");
         ResetAttackState();
     }
 
@@ -346,6 +714,13 @@ public class PlayerFight : MonoBehaviour
 
         Debug.Log("[PlayerFight] Attack state reset.");
 
+        if (autoDamageCoroutine != null)
+        {
+            StopCoroutine(autoDamageCoroutine);
+            autoDamageCoroutine = null;
+        }
+        hasDealtDamageThisAttack = false;
+
         if (tpc != null)
         {
             tpc._isAttacking = false;
@@ -368,8 +743,10 @@ public class PlayerFight : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        if (attackOrigin == null) return;
+        Vector3 origin = (attackOrigin != null && attackOrigin != transform)
+            ? attackOrigin.position
+            : transform.position + transform.forward * 1.2f + Vector3.up * 0.6f;
         Gizmos.color = new Color(1f, 0f, 0f, 0.4f);
-        Gizmos.DrawWireSphere(attackOrigin.position, attackRange);
+        Gizmos.DrawWireSphere(origin, attackRange);
     }
 }

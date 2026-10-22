@@ -119,6 +119,24 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         Die();
     }
 
+    [Header("Checkpoint & Respawn")]
+    [Tooltip("Apakah Player akan respawn di Checkpoint terakhir saat mati?")]
+    [SerializeField] private bool respawnAtCheckpoint = true;
+    private Vector3 checkpointPosition;
+    private Quaternion checkpointRotation;
+    private bool hasCheckpoint = false;
+
+    /// <summary>
+    /// Simpan koordinat checkpoint untuk respawn saat mati.
+    /// </summary>
+    public void SetCheckpoint(Vector3 position, Quaternion rotation)
+    {
+        checkpointPosition = position;
+        checkpointRotation = rotation;
+        hasCheckpoint = true;
+        Debug.Log($"[PlayerHealth] Checkpoint berhasil disimpan di {position}");
+    }
+
     // ===================== PRIVATE METHODS =====================
 
     private void Die()
@@ -148,7 +166,11 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     {
         yield return new WaitForSeconds(deathDelay);
 
-        if (!string.IsNullOrEmpty(gameOverSceneName))
+        if (respawnAtCheckpoint && hasCheckpoint)
+        {
+            RespawnAtCheckpoint();
+        }
+        else if (!string.IsNullOrEmpty(gameOverSceneName))
         {
             UnityEngine.SceneManagement.SceneManager.LoadScene(gameOverSceneName);
         }
@@ -156,6 +178,45 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         {
             Debug.LogWarning("[PlayerHealth] Nama scene Game Over belum diisi!");
         }
+    }
+
+    public void RespawnAtCheckpoint()
+    {
+        // 1. Matikan CharacterController sementara agar teleport berhasil tanpa terhalang collision
+        var cc = GetComponent<CharacterController>();
+        if (cc != null) cc.enabled = false;
+
+        transform.position = checkpointPosition;
+        transform.rotation = checkpointRotation;
+
+        if (cc != null) cc.enabled = true;
+
+        // 2. Pulihkan HP dan state
+        isDead = false;
+        currentHealth = maxHealth;
+        UpdateHealthUI();
+
+        // 3. Aktifkan kembali controller & input
+        var controllers = GetComponents<MonoBehaviour>();
+        foreach (var ctrl in controllers)
+        {
+            if (ctrl == this) continue;
+            if (ctrl.GetType().Name.Contains("Controller") || ctrl.GetType().Name.Contains("Input"))
+                ctrl.enabled = true;
+        }
+
+        // 4. Reset animator jika ada
+        var anim = GetComponent<Animator>();
+        if (anim != null)
+        {
+            anim.Rebind();
+            anim.Update(0f);
+        }
+
+        // 5. Berikan invincibility sesaat setelah respawn
+        StartCoroutine(ActivateInvincibility());
+
+        Debug.Log("[PlayerHealth] Player berhasil respawn di checkpoint!");
     }
 
     private IEnumerator ActivateInvincibility()

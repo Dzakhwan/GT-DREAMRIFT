@@ -15,8 +15,8 @@ namespace StarterAssets
     public class ThirdPersonController : MonoBehaviour
     {
         [Header("Player")]
-        [Tooltip("Move speed of the character in m/s")]
-        public float MoveSpeed = 2.0f;
+        [Tooltip("Move speed of the character in m/s (auto-run)")]
+        public float MoveSpeed = 5.335f;
 
         [Tooltip("Sprint speed of the character in m/s")]
         public float SprintSpeed = 5.335f;
@@ -26,7 +26,7 @@ namespace StarterAssets
         public float RotationSmoothTime = 0.12f;
 
         [Tooltip("Acceleration and deceleration")]
-        public float SpeedChangeRate = 10.0f;
+        public float SpeedChangeRate = 16.0f;
 
         public AudioSource AudioFootsteps;
         public AudioSource LandingAudio;
@@ -89,6 +89,7 @@ namespace StarterAssets
 
         [Tooltip("Lock rotation during attack root motion")]
         public bool _lockRotation = false;
+
         // cinemachine
         private float _cinemachineTargetYaw;
         private float _cinemachineTargetPitch;
@@ -100,8 +101,6 @@ namespace StarterAssets
         private float _rotationVelocity;
         private float _verticalVelocity;
         private float _terminalVelocity = 53.0f;
-
-
 
         // timeout deltatime
         private float _jumpTimeoutDelta;
@@ -170,8 +169,6 @@ namespace StarterAssets
 
         private void Update()
         {
-            _hasAnimator = TryGetComponent(out _animator);
-
             JumpAndGravity();
             GroundedCheck();
             Move();
@@ -241,8 +238,8 @@ namespace StarterAssets
 
         private void Move()
         {
-            // set target speed based on move speed, sprint speed and if sprint is pressed
-            float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
+            // Pergerakan selalu menggunakan kecepatan lari (SprintSpeed); Left Shift dinonaktifkan
+            float targetSpeed = SprintSpeed;
 
             // if there is no input, set the target speed to 0
             if (_input.move == Vector2.zero) targetSpeed = 0.0f;
