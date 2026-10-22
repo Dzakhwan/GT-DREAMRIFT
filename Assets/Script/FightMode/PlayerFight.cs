@@ -117,11 +117,14 @@ public class PlayerFight : MonoBehaviour
     private bool isAttacking;
     private bool comboWindowOpen;
     private float comboWindowTimer;
+    private bool hasBufferedCombo = false;
     private bool isPreAttacking;
     private float preAttackTimer;
     private float attackFailsafeTimer;
     private bool hasDealtDamageThisAttack = false;
     private Coroutine autoDamageCoroutine;
+    private bool hasSpawnedVFXThisAttack = false;
+    private Coroutine autoVFXCoroutine;
 
     private static readonly int AttackAStateHash = Animator.StringToHash("Charged_Upward_Slash");
     private static readonly int AttackBStateHash = Animator.StringToHash("Armature_Sword_Regular_B");
@@ -156,6 +159,23 @@ public class PlayerFight : MonoBehaviour
             attackButton.onClick.AddListener(OnAttackButtonPressed);
 
 #if UNITY_EDITOR
+        EnsureVFXReferences();
+#endif
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        EnsureVFXReferences();
+    }
+
+    private void Reset()
+    {
+        EnsureVFXReferences();
+    }
+
+    private void EnsureVFXReferences()
+    {
         if (hitImpactVFXPrefab == null)
             hitImpactVFXPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/BloodHit_VFX.prefab");
         if (hitSlashSliceVFXPrefab == null)
@@ -172,8 +192,8 @@ public class PlayerFight : MonoBehaviour
             comboSlashVFXPrefabs[1] = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/SlashVFX_Phase2.prefab");
         if (comboSlashVFXPrefabs[2] == null)
             comboSlashVFXPrefabs[2] = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/VFX/SlashVFX_Phase3.prefab");
-#endif
     }
+#endif
 
     private void EnsureStaffEquipped()
     {
@@ -356,10 +376,22 @@ public class PlayerFight : MonoBehaviour
         {
             if (!isPreAttacking && attackIndex < maxComboSteps)
             {
-                int nextIndex = attackIndex + 1;
-                if (showDebugLogs)
-                    Debug.Log($"[PlayerFight] Combo accepted → attackIndex={nextIndex}");
-                StartAttack(nextIndex);
+                if (comboWindowOpen)
+                {
+                    // Combo window sudah terbuka: langsung masuk ke combo step berikutnya
+                    int nextIndex = attackIndex + 1;
+                    hasBufferedCombo = false;
+                    if (showDebugLogs)
+                        Debug.Log($"[PlayerFight] Combo window open → immediate transition to attackIndex={nextIndex}");
+                    StartAttack(nextIndex);
+                }
+                else
+                {
+                    // Masih di tengah ayunan animasi: simpan input (buffer) agar animasi saat ini tuntas terlebih dahulu
+                    hasBufferedCombo = true;
+                    if (showDebugLogs)
+                        Debug.Log($"[PlayerFight] Attack buffered for combo step {attackIndex + 1} (waiting for current swing to complete)");
+                }
             }
             else if (IsTransitioningOutOfAttack())
             {
@@ -400,6 +432,7 @@ public class PlayerFight : MonoBehaviour
         attackIndex = index;
         comboWindowOpen = false;
         comboWindowTimer = 0f;
+        hasBufferedCombo = false;
         attackFailsafeTimer = Mathf.Max(0.1f, attackFailsafeDuration);
 
         if (showDebugLogs)
@@ -421,43 +454,62 @@ public class PlayerFight : MonoBehaviour
             }
         }
 
-        // Spawn efek busur tebasan ayunan pedang di udara jika diaktifkan
+        // Reset status pemicuan VFX dan damage untuk serangan baru ini
+        hasSpawnedVFXThisAttack = false;
+        if (autoVFXCoroutine != null) StopCoroutine(autoVFXCoroutine);
         if (enableSlashArcVFX)
         {
-            SpawnSlashArcVisual(attackIndex);
+            autoVFXCoroutine = StartCoroutine(AutoVFXFallbackRoutine(attackIndex));
         }
 
         hasDealtDamageThisAttack = false;
         if (autoDamageCoroutine != null) StopCoroutine(autoDamageCoroutine);
-        autoDamageCoroutine = StartCoroutine(AutoDamageFallbackRoutine());
+        autoDamageCoroutine = StartCoroutine(AutoDamageFallbackRoutine(attackIndex));
     }
 
-    private void SpawnSlashArcVisual(int comboStep)
+    private System.Collections.IEnumerator AutoVFXFallbackRoutine(int comboStep)
     {
-        float delay = 0f;
+        float delay = GetVFXFallbackDelay(comboStep);
+        yield return new WaitForSeconds(delay);
+        if (isAttacking && attackIndex == comboStep && !hasSpawnedVFXThisAttack)
+        {
+            if (showDebugLogs)
+                Debug.Log($"[PlayerFight] Fallback VFX triggered for step {comboStep} after {delay:F2}s");
+            TriggerAttackVFX(comboStep);
+        }
+    }
+
+    private float GetVFXFallbackDelay(int comboStep)
+    {
         switch (comboStep)
         {
-            case 1: delay = 0.03f; break;
-            case 2: delay = 0.10f; break;
-            case 3: delay = 0.30f; break; // Delayed to match Attack C release apex!
-        }
-
-        if (delay > 0f && gameObject.activeInHierarchy)
-        {
-            StartCoroutine(DelayedSlashVisualRoutine(delay, comboStep));
-        }
-        else
-        {
-            ExecuteSlashVFX(comboStep);
+            case 1: return 0.47f; // Charged_Upward_Slash: apex riil 0.80s / speed 1.76 ≈ 0.455s
+            case 2: return 0.32f; // Armature_Sword_Regular_B: event di 0.30s
+            case 3: return 0.37f; // Armature_Sword_Regular_C: event di 0.35s
+            default: return 0.35f;
         }
     }
 
-    private System.Collections.IEnumerator DelayedSlashVisualRoutine(float delay, int comboStep)
+    private System.Collections.IEnumerator AutoDamageFallbackRoutine(int comboStep)
     {
+        float delay = GetDamageFallbackDelay(comboStep);
         yield return new WaitForSeconds(delay);
-        if (isAttacking && attackIndex == comboStep)
+        if (isAttacking && !hasDealtDamageThisAttack)
         {
-            ExecuteSlashVFX(comboStep);
+            if (showDebugLogs)
+                Debug.Log($"[PlayerFight] Fallback Damage triggered for step {comboStep} after {delay:F2}s");
+            DealDamage();
+        }
+    }
+
+    private float GetDamageFallbackDelay(int comboStep)
+    {
+        switch (comboStep)
+        {
+            case 1: return 0.52f; // Charged_Upward_Slash: hit frame di 0.85s / speed 1.76 ≈ 0.483s
+            case 2: return 0.38f; // Armature_Sword_Regular_B: hit frame di 0.35s
+            case 3: return 0.44f; // Armature_Sword_Regular_C: hit frame di 0.40s
+            default: return autoDamageDelay;
         }
     }
 
@@ -480,42 +532,36 @@ public class PlayerFight : MonoBehaviour
         if (vfxToSpawn == null) return;
 
         // 2. Tentukan posisi dan rotasi sesuai arah ayunan tiap fase combo (menyesuaikan kamera isometrik)
-        Vector3 spawnPos = transform.position + transform.forward * 1.3f + Vector3.up * 0.75f;
+        // Posisikan tepat di depan pemain agar busur tebasan selalu terlihat jelas oleh kamera
+        Vector3 spawnPos;
         Quaternion rot;
-        float destroyDelay = 0.40f;
+        float destroyDelay = 0.45f;
 
         switch (comboStep)
         {
             case 1:
                 // Fase 1: Sapuan horizontal kanan ke kiri
+                spawnPos = transform.position + transform.forward * 1.25f + Vector3.up * 0.85f;
                 rot = transform.rotation * Quaternion.Euler(70f, 0f, 5f);
-                destroyDelay = 0.32f;
+                destroyDelay = 0.45f;
                 break;
             case 2:
                 // Fase 2: Ayunan menyilang naik dari kiri bawah ke kanan atas
+                spawnPos = transform.position + transform.forward * 1.25f + Vector3.up * 0.85f;
                 rot = transform.rotation * Quaternion.Euler(60f, -15f, -30f);
-                destroyDelay = 0.35f;
+                destroyDelay = 0.45f;
                 break;
             case 3:
             default:
                 // Fase 3: Tebasan pamungkas berat (Sonic Gale Blast) lurus ke depan
-                spawnPos = transform.position + transform.forward * 1.5f + Vector3.up * 0.65f;
+                spawnPos = transform.position + transform.forward * 1.50f + Vector3.up * 0.85f;
                 rot = transform.rotation * Quaternion.Euler(75f, 0f, 0f);
-                destroyDelay = 0.55f;
+                destroyDelay = 0.65f;
                 break;
         }
 
         GameObject arc = Instantiate(vfxToSpawn, spawnPos, rot);
         Destroy(arc, destroyDelay);
-    }
-
-    private System.Collections.IEnumerator AutoDamageFallbackRoutine()
-    {
-        yield return new WaitForSeconds(autoDamageDelay);
-        if (isAttacking && !hasDealtDamageThisAttack)
-        {
-            DealDamage();
-        }
     }
 
     // ===================== ANIMATION EVENTS =====================
@@ -524,11 +570,67 @@ public class PlayerFight : MonoBehaviour
     // → pilih fungsi yang sesuai.
 
     /// <summary>
+    /// [ANIMATION EVENT] Pemicu efek visual tebasan wand pada frame ayunan yang tepat.
+    /// </summary>
+    public void TriggerAttackVFX()
+    {
+        TriggerAttackVFX(attackIndex);
+    }
+
+    /// <summary>
+    /// [ANIMATION EVENT] Pemicu efek visual tebasan wand dengan spesifik combo step.
+    /// </summary>
+    public void TriggerAttackVFX(int step)
+    {
+        if (!isAttacking) return;
+
+        int targetStep = (step > 0) ? step : attackIndex;
+        if (targetStep != attackIndex)
+        {
+            if (showDebugLogs)
+                Debug.Log($"[PlayerFight] Ignoring stale TriggerAttackVFX from step {step}; current step is {attackIndex}");
+            return;
+        }
+
+        if (hasSpawnedVFXThisAttack) return;
+        hasSpawnedVFXThisAttack = true;
+
+        if (autoVFXCoroutine != null)
+        {
+            StopCoroutine(autoVFXCoroutine);
+            autoVFXCoroutine = null;
+        }
+
+        if (showDebugLogs)
+            Debug.Log($"[PlayerFight] TriggerAttackVFX via Animation Event → step={targetStep}");
+
+        if (enableSlashArcVFX)
+        {
+            ExecuteSlashVFX(targetStep);
+        }
+    }
+
+    /// <summary>
     /// [ANIMATION EVENT] Panggil method ini di frame tepat pukulan mendarat di animasi.
     /// Script akan otomatis mendeteksi dan memberikan damage ke musuh yang kena.
     /// </summary>
     public void DealDamage()
     {
+        DealDamage(attackIndex);
+    }
+
+    public void DealDamage(int step)
+    {
+        if (!isAttacking) return;
+
+        int targetStep = (step > 0) ? step : attackIndex;
+        if (targetStep != attackIndex)
+        {
+            if (showDebugLogs)
+                Debug.Log($"[PlayerFight] Ignoring stale DealDamage from step {step}; current step is {attackIndex}");
+            return;
+        }
+
         if (hasDealtDamageThisAttack) return;
         hasDealtDamageThisAttack = true;
 
@@ -663,13 +765,37 @@ public class PlayerFight : MonoBehaviour
     /// </summary>
     public void OpenComboWindow()
     {
+        OpenComboWindow(attackIndex);
+    }
+
+    public void OpenComboWindow(int step)
+    {
+        int eventStep = (step > 0) ? step : attackIndex;
+        if (eventStep != attackIndex)
+        {
+            if (showDebugLogs)
+                Debug.Log($"[PlayerFight] Ignoring stale OpenComboWindow from step {eventStep}; current step is {attackIndex}");
+            return;
+        }
+
         if (!isAttacking || isPreAttacking || attackIndex >= maxComboSteps)
             return;
 
         comboWindowOpen = true;
         comboWindowTimer = comboWindowDuration;
+
         if (showDebugLogs)
-            Debug.Log($"[PlayerFight] OpenComboWindow → comboWindowTimer={comboWindowTimer:F3}");
+            Debug.Log($"[PlayerFight] OpenComboWindow → comboWindowTimer={comboWindowTimer:F3}, hasBufferedCombo={hasBufferedCombo}");
+
+        // Jika pemain sudah menekan tombol attack selama ayunan, eksekusi combo berikutnya sekarang
+        if (hasBufferedCombo)
+        {
+            hasBufferedCombo = false;
+            int nextIndex = attackIndex + 1;
+            if (showDebugLogs)
+                Debug.Log($"[PlayerFight] OpenComboWindow executing buffered combo → attackIndex={nextIndex}");
+            StartAttack(nextIndex);
+        }
     }
 
     /// <summary>
@@ -677,10 +803,34 @@ public class PlayerFight : MonoBehaviour
     /// </summary>
     public void CloseAttack()
     {
+        CloseAttack(attackIndex);
+    }
+
+    public void CloseAttack(int step)
+    {
+        int eventStep = (step > 0) ? step : attackIndex;
+        if (eventStep != attackIndex)
+        {
+            if (showDebugLogs)
+                Debug.Log($"[PlayerFight] Ignoring stale CloseAttack from step {eventStep}; current step is {attackIndex}");
+            return;
+        }
+
         int currentStateAttackIndex = GetAttackStateIndex(animator.GetCurrentAnimatorStateInfo(0));
         if (currentStateAttackIndex != 0 && currentStateAttackIndex != attackIndex)
         {
-            Debug.Log($"[PlayerFight] Ignoring stale CloseAttack from step {currentStateAttackIndex}; current step is {attackIndex}");
+            Debug.Log($"[PlayerFight] Ignoring stale CloseAttack from state {currentStateAttackIndex}; current step is {attackIndex}");
+            return;
+        }
+
+        // Jika pemain sempat menekan attack sebelum animasi selesai (buffer), lanjutkan ke combo berikutnya
+        if (hasBufferedCombo && attackIndex < maxComboSteps)
+        {
+            hasBufferedCombo = false;
+            int nextIndex = attackIndex + 1;
+            if (showDebugLogs)
+                Debug.Log($"[PlayerFight] CloseAttack executing buffered combo → attackIndex={nextIndex}");
+            StartAttack(nextIndex);
             return;
         }
 
@@ -709,10 +859,18 @@ public class PlayerFight : MonoBehaviour
         isPreAttacking = false;
         comboWindowOpen = false;
         comboWindowTimer = 0f;
+        hasBufferedCombo = false;
         attackIndex = 0;
         attackFailsafeTimer = 0f;
 
         Debug.Log("[PlayerFight] Attack state reset.");
+
+        if (autoVFXCoroutine != null)
+        {
+            StopCoroutine(autoVFXCoroutine);
+            autoVFXCoroutine = null;
+        }
+        hasSpawnedVFXThisAttack = false;
 
         if (autoDamageCoroutine != null)
         {

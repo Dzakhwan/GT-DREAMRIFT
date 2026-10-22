@@ -2324,6 +2324,7 @@ MonoBehaviour:
   onHealed:
     m_PersistentCalls:
       m_Calls: []
+  respawnAtCheckpoint: 1
 --- !u!114 &4372390815790303942
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2346,6 +2347,10 @@ MonoBehaviour:
   - 1.2
   - 1.5
   attackRange: 2.2
+  comboRangeMultipliers:
+  - 1
+  - 1.1
+  - 1.25
   enemyLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -2357,7 +2362,11 @@ MonoBehaviour:
   hitImpactVFXPrefab: {fileID: 8833475332926108294, guid: 8113d476792e3e049b33a5278d089f18, type: 3}
   hitSlashSliceVFXPrefab: {fileID: 8219933811239210069, guid: 5e7cb79d748c9584780e1816302b5ef1, type: 3}
   slashArcVFXPrefab: {fileID: 4579344676633720227, guid: 26a52d8403e34d543a873f398fe5fff6, type: 3}
-  enableSlashArcVFX: 0
+  comboSlashVFXPrefabs:
+  - {fileID: 488363942410895388, guid: ad831d541fd55464094f1b88d63df4c6, type: 3}
+  - {fileID: 3719970204866746162, guid: f403ab4856762e74a9c3e1322e97152a, type: 3}
+  - {fileID: 1365781975958028635, guid: 85141bbeb5484424a857375d369264c6, type: 3}
+  enableSlashArcVFX: 1
   comboKnockbackDistances:
   - 1.2
   - 2
