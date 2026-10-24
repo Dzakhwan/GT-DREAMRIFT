@@ -15,8 +15,8 @@ namespace StarterAssets
     public class ThirdPersonController : MonoBehaviour
     {
         [Header("Player")]
-        [Tooltip("Move speed of the character in m/s")]
-        public float MoveSpeed = 2.0f;
+        [Tooltip("Move speed of the character in m/s (auto-run)")]
+        public float MoveSpeed = 5.335f;
 
         [Tooltip("Sprint speed of the character in m/s")]
         public float SprintSpeed = 5.335f;
@@ -26,7 +26,7 @@ namespace StarterAssets
         public float RotationSmoothTime = 0.12f;
 
         [Tooltip("Acceleration and deceleration")]
-        public float SpeedChangeRate = 10.0f;
+        public float SpeedChangeRate = 16.0f;
 
         public AudioSource AudioFootsteps;
         public AudioSource LandingAudio;
@@ -89,6 +89,8 @@ namespace StarterAssets
 
         [Tooltip("Lock rotation during attack root motion")]
         public bool _lockRotation = false;
+        public bool _useAttackRootMotion = false;
+
         // cinemachine
         private float _cinemachineTargetYaw;
         private float _cinemachineTargetPitch;
@@ -100,8 +102,6 @@ namespace StarterAssets
         private float _rotationVelocity;
         private float _verticalVelocity;
         private float _terminalVelocity = 53.0f;
-
-
 
         // timeout deltatime
         private float _jumpTimeoutDelta;
@@ -170,8 +170,6 @@ namespace StarterAssets
 
         private void Update()
         {
-            _hasAnimator = TryGetComponent(out _animator);
-
             JumpAndGravity();
             GroundedCheck();
             Move();
@@ -241,8 +239,8 @@ namespace StarterAssets
 
         private void Move()
         {
-            // set target speed based on move speed, sprint speed and if sprint is pressed
-            float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
+            // Pergerakan selalu menggunakan kecepatan lari (SprintSpeed); Left Shift dinonaktifkan
+            float targetSpeed = SprintSpeed;
 
             // if there is no input, set the target speed to 0
             if (_input.move == Vector2.zero) targetSpeed = 0.0f;
@@ -313,23 +311,27 @@ namespace StarterAssets
 
         private void OnAnimatorMove()
         {
-            if (_hasAnimator && _lockRotation)
+            if (_hasAnimator && (_lockRotation || _useAttackRootMotion))
             {
                 Vector3 animatorDelta = _animator.deltaPosition;
-                Debug.Log($"[TPC] OnAnimatorMove → Grounded={Grounded}, deltaPos={animatorDelta}, _lockRotation={_lockRotation}");
-
                 if (Grounded)
                 {
                     Vector3 rootMotionVelocity = new Vector3(animatorDelta.x, 0, animatorDelta.z) / Time.deltaTime;
                     rootMotionVelocity.y = _verticalVelocity;
                     _controller.Move(rootMotionVelocity * Time.deltaTime);
-                    transform.rotation *= _animator.deltaRotation;
+                    if (_lockRotation)
+                        transform.rotation *= _animator.deltaRotation;
                 }
             }
         }
 
         private void JumpAndGravity()
         {
+            if (_isAttacking)
+            {
+                _input.jump = false;
+            }
+
             if (Grounded)
             {
                 // reset the fall timeout timer

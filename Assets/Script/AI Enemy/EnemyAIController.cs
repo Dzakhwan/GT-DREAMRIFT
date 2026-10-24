@@ -139,6 +139,9 @@ public class EnemyAIController : MonoBehaviour
             StopCoroutine(stateRoutine);
             stateRoutine = null;
         }
+
+        if (EnemyAttackCoordinator.HasInstance)
+            EnemyAttackCoordinator.Instance.ReleaseAttackToken(this);
     }
 
     private void TransitionTo(EnemyState next)
@@ -272,8 +275,9 @@ public class EnemyAIController : MonoBehaviour
 
     private IEnumerator ChaseState()
     {
-        chaseTickTimer = 0f;
-        repositionTimer = 0f;
+        // Stagger timer agar seluruh musuh tidak menghitung pathfinding di frame yang sama
+        chaseTickTimer = Random.Range(0f, chaseTickInterval);
+        repositionTimer = Random.Range(0f, 0.4f);
 
         while (true)
         {
@@ -294,8 +298,12 @@ public class EnemyAIController : MonoBehaviour
             float effectiveAttackRange = attackPattern != null ? attackPattern.AttackRange : attackRange;
             if (dist <= effectiveAttackRange && cooldownTimer <= 0f)
             {
-                TransitionTo(EnemyState.Attack);
-                yield break;
+                // Minta izin giliran menyerang dari Attack Coordinator
+                if (EnemyAttackCoordinator.Instance == null || EnemyAttackCoordinator.Instance.RequestAttackToken(this))
+                {
+                    TransitionTo(EnemyState.Attack);
+                    yield break;
+                }
             }
 
             if (cooldownTimer > 0f)
@@ -355,6 +363,9 @@ public class EnemyAIController : MonoBehaviour
     {
         if (playerTarget == null || attackPattern == null)
         {
+            if (EnemyAttackCoordinator.HasInstance)
+                EnemyAttackCoordinator.Instance.ReleaseAttackToken(this);
+
             TransitionTo(EnemyState.Chase);
             yield break;
         }
@@ -399,6 +410,9 @@ public class EnemyAIController : MonoBehaviour
 
         onAttackEndEvents?.Invoke();
 
+        if (EnemyAttackCoordinator.HasInstance)
+            EnemyAttackCoordinator.Instance.ReleaseAttackToken(this);
+
         cooldownTimer = attackPattern.AttackCooldown;
 
         // Note: attack patterns (e.g. SlimeDashAttackSO) already snap the transform
@@ -422,6 +436,9 @@ public class EnemyAIController : MonoBehaviour
 
     private void HandleDeath()
     {
+        if (EnemyAttackCoordinator.HasInstance)
+            EnemyAttackCoordinator.Instance.ReleaseAttackToken(this);
+
         TransitionTo(EnemyState.Dead);
         enabled = false;
     }
@@ -513,7 +530,7 @@ public class EnemyAIController : MonoBehaviour
             return false;
         }
 
-        for (int i = 0; i < 12; i++)
+        for (int i = 0; i < 5; i++)
         {
             float radius = Random.Range(swarmMinRadius, swarmMaxRadius);
             Vector2 circle = Random.insideUnitCircle.normalized * radius;
@@ -601,6 +618,72 @@ public class EnemyAIController : MonoBehaviour
         }
 
         transform.localScale = originalScale;
+    }
+
+    private Coroutine knockbackCoroutine;
+    private bool isKnockedBack = false;
+
+    public bool IsKnockedBack => isKnockedBack;
+
+    /// <summary>
+    /// Menerapkan gaya dorong ke belakang (Knockback) pada musuh saat terkena serangan.
+    /// Menggunakan agent.Move() agar aman terhadap batas NavMesh (tidak menembus tembok).
+    /// </summary>
+    public void ApplyKnockback(Vector3 direction, float distance, float duration = 0.2f)
+    {
+        if (currentState == EnemyState.Dead || (health != null && health.IsDead)) return;
+
+        if (knockbackCoroutine != null)
+        {
+            StopCoroutine(knockbackCoroutine);
+        }
+
+        knockbackCoroutine = StartCoroutine(KnockbackRoutine(direction, distance, duration));
+    }
+
+    private IEnumerator KnockbackRoutine(Vector3 direction, float distance, float duration)
+    {
+        isKnockedBack = true;
+        direction.y = 0f;
+        direction.Normalize();
+
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+        }
+
+        float elapsed = 0f;
+        float speed = distance / Mathf.Max(0.05f, duration);
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = Mathf.Clamp01(elapsed / duration);
+
+            // Ease-out: dorongan kuat di awal lalu melambat secara natural
+            float currentSpeed = Mathf.Lerp(speed * 1.6f, 0f, progress);
+            Vector3 delta = direction * (currentSpeed * Time.deltaTime);
+
+            if (agent != null && agent.enabled && agent.isOnNavMesh)
+            {
+                agent.Move(delta);
+            }
+            else
+            {
+                transform.position += delta;
+            }
+
+            yield return null;
+        }
+
+        if (agent != null && agent.enabled && agent.isOnNavMesh && currentState != EnemyState.Dead)
+        {
+            agent.isStopped = false;
+        }
+
+        isKnockedBack = false;
+        knockbackCoroutine = null;
     }
 
     private void OnDrawGizmosSelected()

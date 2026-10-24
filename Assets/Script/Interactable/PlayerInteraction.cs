@@ -61,8 +61,18 @@ public class PlayerInteraction : MonoBehaviour
     // Referensi ke MonoBehaviour dari currentTarget (untuk ambil transform/range)
     private MonoBehaviour currentTargetMB;
 
+    // Optimization fields
+    [Header("Performance")]
+    [Tooltip("Interval waktu (detik) untuk memindai objek interaktif di sekitar pemain.")]
+    [SerializeField] private float detectionInterval = 0.1f;
+    private float detectionTimer = 0f;
+    private readonly Collider[] hitBuffer = new Collider[16];
+    private Camera cachedMainCamera;
+
     private void Start()
     {
+        cachedMainCamera = Camera.main;
+
         // Pastikan tombol tersembunyi di awal
         if (interactButtonPanel != null)
             interactButtonPanel.SetActive(false);
@@ -74,7 +84,12 @@ public class PlayerInteraction : MonoBehaviour
 
     private void Update()
     {
-        DetectNearbyInteractable();
+        detectionTimer += Time.deltaTime;
+        if (detectionTimer >= detectionInterval)
+        {
+            detectionTimer = 0f;
+            DetectNearbyInteractable();
+        }
     }
 
     private void LateUpdate()
@@ -83,7 +98,7 @@ public class PlayerInteraction : MonoBehaviour
     }
 
     /// <summary>
-    /// Setiap frame, cari objek IInteractable menggunakan mode deteksi yang dipilih.
+    /// Cari objek IInteractable menggunakan mode deteksi yang dipilih.
     /// Mendukung semua implementasi IInteractable: InteractableObject, CutsceneTrigger, QuestTrigger, dll.
     /// </summary>
     private void DetectNearbyInteractable()
@@ -115,13 +130,18 @@ public class PlayerInteraction : MonoBehaviour
 
     private void DetectByOverlapSphere(out IInteractable closest, out MonoBehaviour closestMB)
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, detectionRadius, interactableLayer);
         closest = null;
         closestMB = null;
+
+        int layerMask = interactableLayer.value != 0 ? interactableLayer.value : ~0;
+        int hitCount = Physics.OverlapSphereNonAlloc(transform.position, detectionRadius, hitBuffer, layerMask);
         float closestDistance = Mathf.Infinity;
 
-        foreach (Collider hit in hits)
+        for (int i = 0; i < hitCount; i++)
         {
+            Collider hit = hitBuffer[i];
+            if (hit == null) continue;
+
             IInteractable interactable = hit.GetComponentInParent<IInteractable>();
             if (interactable == null) continue;
 
@@ -212,6 +232,7 @@ public class PlayerInteraction : MonoBehaviour
         if (mb is Dreamrift.QuestSystem.QuestTrigger qt) return qt.InteractRange;
         if (mb is ConversationStarter cs) return cs.InteractionRadius;
         if (mb is Dreamrift.InventorySystem.ItemPickup ip) return ip.InteractRange;
+        if (mb is Dreamrift.Checkpoint.CheckpointShrine shrine) return shrine.InteractRange;
         // Fallback: gunakan detectionRadius
         return detectionRadius;
     }
@@ -245,7 +266,10 @@ public class PlayerInteraction : MonoBehaviour
     /// </summary>
     private void UpdateInteractButtonPosition()
     {
-        if (!followTargetOnScreen || currentTarget == null || currentTargetMB == null || interactButtonPanel == null || Camera.main == null)
+        if (cachedMainCamera == null)
+            cachedMainCamera = Camera.main;
+
+        if (!followTargetOnScreen || currentTarget == null || currentTargetMB == null || interactButtonPanel == null || cachedMainCamera == null)
         {
             return;
         }
@@ -268,7 +292,7 @@ public class PlayerInteraction : MonoBehaviour
             }
 
             Vector3 worldPos = targetWorldPos + Vector3.up * uiWorldHeightOffset;
-            Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+            Vector3 screenPos = cachedMainCamera.WorldToScreenPoint(worldPos);
 
             // Pastikan objek ada di depan kamera (Z > 0)
             if (screenPos.z > 0)
