@@ -8,15 +8,20 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Pillar Variant 2
-  m_Shader: {fileID: -6465566751694194690, guid: 4f03e090f823e194a8710fe149803097,
-    type: 3}
-  m_Parent: {fileID: 2100000, guid: eac1e3160e2fd6e4ea5c7177ce616e84, type: 2}
+  m_Shader: {fileID: 4800000, guid: bee44b4a58655ee4cbff107302a3e131, type: 3}
+  m_Parent: {fileID: 2100000, guid: 22f35c0ef39e14c1f9dce7630175a3d7, type: 2}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
+  - _CELPRIMARYMODE_SINGLE
+  - _DETAILMAPBLENDINGMODE_MULTIPLY
+  - _GRADIENTSPACE_WORLD
+  - _OUTLINESPACE_SCREEN
+  - _TEXTUREBLENDINGMODE_MULTIPLY
+  m_InvalidKeywords:
   - _BLEND_MODE_OVERLAY
   - _HEIGHT_ENABLED
   - _TYPE_C
-  m_InvalidKeywords: []
+  - _UNITYSHADOWMODE_NONE
   m_LightmapFlags: 2
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
