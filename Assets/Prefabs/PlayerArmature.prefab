@@ -2127,6 +2127,7 @@ MonoBehaviour:
   fixedPitchAngle: 45
   _isAttacking: 0
   _lockRotation: 0
+  _useAttackRootMotion: 0
 --- !u!114 &7744810703704222998
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2307,9 +2308,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerFight
   maxComboSteps: 3
-  comboWindowDuration: 2.05
-  preAttackDelay: 0.15
-  attackFailsafeDuration: 3
+  comboWindowDuration: 10
+  preAttackDelay: 0
+  attackFailsafeDuration: 1
   baseDamage: 20
   comboDamageMultipliers:
   - 1

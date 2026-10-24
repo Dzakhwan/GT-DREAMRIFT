@@ -4880,18 +4880,6 @@ PrefabInstance:
       propertyPath: attackButton
       value: 
       objectReference: {fileID: 1843287398}
-    - target: {fileID: 4372390815790303942, guid: ec3f1a4fcc406874394f195572d79044, type: 3}
-      propertyPath: preAttackDelay
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4372390815790303942, guid: ec3f1a4fcc406874394f195572d79044, type: 3}
-      propertyPath: comboWindowDuration
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 4372390815790303942, guid: ec3f1a4fcc406874394f195572d79044, type: 3}
-      propertyPath: attackFailsafeDuration
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 6438860226343819478, guid: ec3f1a4fcc406874394f195572d79044, type: 3}
       propertyPath: healthText
       value: 
