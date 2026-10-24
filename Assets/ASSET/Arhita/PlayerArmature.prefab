@@ -966,12 +966,6 @@ MonoBehaviour:
   fixedPitchAngle: 25
   _isAttacking: 0
   _lockRotation: 0
-  attackMoveSpeedMultiplier: 0.8
-  allowRotationDuringAttack: 1
-  dashSpeed: 13.5
-  dashDuration: 0.35
-  dashCooldown: 0.55
-  _isDashing: 0
 --- !u!114 &5701410894467884179
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1006,7 +1000,6 @@ MonoBehaviour:
   jump: 0
   sprint: 0
   fire: 0
-  dash: 0
   analogMovement: 0
   cursorLocked: 1
   cursorInputForLook: 1
@@ -1139,6 +1132,7 @@ MonoBehaviour:
   onHealed:
     m_PersistentCalls:
       m_Calls: []
+  respawnAtCheckpoint: 1
 --- !u!114 &555643144256937895
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1161,6 +1155,10 @@ MonoBehaviour:
   - 1.2
   - 1.5
   attackRange: 2.2
+  comboRangeMultipliers:
+  - 1
+  - 1.1
+  - 1.25
   enemyLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -1172,6 +1170,11 @@ MonoBehaviour:
   hitImpactVFXPrefab: {fileID: 4625109239048288297, guid: b100fd0e97675a047a613d3f8612b787, type: 3}
   hitSlashSliceVFXPrefab: {fileID: 8337929404812589894, guid: 4884cc370c5584341a5913d367eb0687, type: 3}
   slashArcVFXPrefab: {fileID: 4579344676633720227, guid: 26a52d8403e34d543a873f398fe5fff6, type: 3}
+  comboSlashVFXPrefabs:
+  - {fileID: 488363942410895388, guid: ad831d541fd55464094f1b88d63df4c6, type: 3}
+  - {fileID: 3719970204866746162, guid: f403ab4856762e74a9c3e1322e97152a, type: 3}
+  - {fileID: 1365781975958028635, guid: 85141bbeb5484424a857375d369264c6, type: 3}
+  enableSlashArcVFX: 1
   comboKnockbackDistances:
   - 1.2
   - 2
@@ -1180,6 +1183,13 @@ MonoBehaviour:
   - 0.15
   - 0.2
   - 0.3
+  staffPrefab: {fileID: 0}
+  staffMaterial: {fileID: 0}
+  autoAttachStaff: 1
+  staffGripPosition: {x: 0, y: 0.075, z: 0.005}
+  staffGripRotation: {x: 0, y: 0, z: 90}
+  staffGripScale: {x: 0.7, y: 0.7, z: 0.7}
+  staffModelOffset: {x: 0, y: 0.3, z: 0}
   attackButton: {fileID: 0}
 --- !u!114 &5708162364930703983
 MonoBehaviour:
