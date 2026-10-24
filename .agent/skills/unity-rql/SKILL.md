@@ -80,6 +80,7 @@ Scenes, prefabs, assets, Editor state:
 | `console` | captured Editor log entries, oldest first (last 1000): logType message timestamp stackTrace sequence |
 | `editor` | Editor state (isPlaying, isPaused, selection …) and operations: CreateGameObject, OpenScene, NewScene, SaveScenes, InstantiatePrefab, OpenPrefab / SavePrefab / ClosePrefab, CopyAsset / MoveAsset / DeleteAsset / CreateFolder, CreateMaterial, SaveAssets, RefreshAssets, ClearConsole, ExecuteMenuItem (rql-schema "editor" for signatures) |
 | `input` | Input System: assets (.inputactions), layouts, interactions, processors; CreateAsset(path, map?) |
+| `lighting` | the active scene's lighting: environment (ambient, fog, skybox, sun), Lighting Settings asset, bake (rql-schema "lighting" for members and calls) |
 | `navigation` | AI Navigation project settings and operations: agentTypes (bake settings, writable), areas (name, cost), BakeAll(), ClearAll() |
 | `objects` | every GameObject in the loaded scenes, depth-first, inactive ones included |
 | `prefab` | root GameObject of the prefab open in prefab editing mode (none otherwise) |
@@ -536,6 +537,7 @@ Clips have no $ref: address them through their timeline (`… | get tracks | get
 - `com.IvanMurzak.Unity.MCP.Editor.Rql.Animation.AnimationModule`
 - `com.IvanMurzak.Unity.MCP.Editor.Rql.Cinemachine.CinemachineModule`
 - `com.IvanMurzak.Unity.MCP.Editor.Rql.InputSystem.InputSystemModule`
+- `com.IvanMurzak.Unity.MCP.Editor.Rql.Lighting.LightingModule`
 - `com.IvanMurzak.Unity.MCP.Editor.Rql.Navigation.NavigationModule`
 - `com.IvanMurzak.Unity.MCP.Editor.Rql.Particles.ParticleSystemModule`
 - `com.IvanMurzak.Unity.MCP.Editor.Rql.Physics3D.PhysicsModule`
