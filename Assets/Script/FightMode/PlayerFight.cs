@@ -69,7 +69,7 @@ public class PlayerFight : MonoBehaviour
     [Tooltip("Prefab efek busur tebasan khusus per fase combo (Fase 1: Horizontal sweep, Fase 2: Reverse rising, Fase 3: Heavy finisher)")]
     [SerializeField] private GameObject[] comboSlashVFXPrefabs = new GameObject[3];
 
-    [Tooltip("Aktifkan efek busur sabetan pedang di udara saat mengayun")]
+    [Tooltip("Aktifkan efek busur sabetan pedang saat Animation Event TriggerAttackVFX dipanggil")]
     [SerializeField] private bool enableSlashArcVFX = true;
 
     [Header("Knockback Settings")]
@@ -123,8 +123,7 @@ public class PlayerFight : MonoBehaviour
     private float attackFailsafeTimer;
     private bool hasDealtDamageThisAttack = false;
     private Coroutine autoDamageCoroutine;
-    private bool hasSpawnedVFXThisAttack = false;
-    private Coroutine autoVFXCoroutine;
+    private readonly bool[] hasSpawnedVFXForCombo = new bool[3];
 
     private static readonly int AttackAStateHash = Animator.StringToHash("Charged_Upward_Slash");
     private static readonly int AttackBStateHash = Animator.StringToHash("Armature_Sword_Regular_B");
@@ -417,6 +416,7 @@ public class PlayerFight : MonoBehaviour
         {
             tpc._isAttacking = true;
             tpc._lockRotation = false; // Saat pre-attack player masih bisa rotasi ke arah musuh/input
+            tpc._useAttackRootMotion = false;
         }
 
         if (showDebugLogs)
@@ -441,7 +441,8 @@ public class PlayerFight : MonoBehaviour
         if (tpc != null)
         {
             tpc._isAttacking = true;
-            tpc._lockRotation = true; // Kunci rotasi & aktifkan root motion pada OnAnimatorMove
+            tpc._lockRotation = false;
+            tpc._useAttackRootMotion = true;
         }
 
         if (animator != null)
@@ -454,40 +455,13 @@ public class PlayerFight : MonoBehaviour
             }
         }
 
-        // Reset status pemicuan VFX dan damage untuk serangan baru ini
-        hasSpawnedVFXThisAttack = false;
-        if (autoVFXCoroutine != null) StopCoroutine(autoVFXCoroutine);
-        if (enableSlashArcVFX)
-        {
-            autoVFXCoroutine = StartCoroutine(AutoVFXFallbackRoutine(attackIndex));
-        }
+        // Keep earlier combo-step events valid while a buffered combo starts its next animation.
+        if (index == 1)
+            System.Array.Clear(hasSpawnedVFXForCombo, 0, hasSpawnedVFXForCombo.Length);
 
         hasDealtDamageThisAttack = false;
         if (autoDamageCoroutine != null) StopCoroutine(autoDamageCoroutine);
         autoDamageCoroutine = StartCoroutine(AutoDamageFallbackRoutine(attackIndex));
-    }
-
-    private System.Collections.IEnumerator AutoVFXFallbackRoutine(int comboStep)
-    {
-        float delay = GetVFXFallbackDelay(comboStep);
-        yield return new WaitForSeconds(delay);
-        if (isAttacking && attackIndex == comboStep && !hasSpawnedVFXThisAttack)
-        {
-            if (showDebugLogs)
-                Debug.Log($"[PlayerFight] Fallback VFX triggered for step {comboStep} after {delay:F2}s");
-            TriggerAttackVFX(comboStep);
-        }
-    }
-
-    private float GetVFXFallbackDelay(int comboStep)
-    {
-        switch (comboStep)
-        {
-            case 1: return 0.47f; // Charged_Upward_Slash: apex riil 0.80s / speed 1.76 ≈ 0.455s
-            case 2: return 0.32f; // Armature_Sword_Regular_B: event di 0.30s
-            case 3: return 0.37f; // Armature_Sword_Regular_C: event di 0.35s
-            default: return 0.35f;
-        }
     }
 
     private System.Collections.IEnumerator AutoDamageFallbackRoutine(int comboStep)
@@ -565,16 +539,44 @@ public class PlayerFight : MonoBehaviour
     }
 
     // ===================== ANIMATION EVENTS =====================
-    // Method-method di bawah ini dipanggil dari Animation Event di Animator Unity.
+    // Tambahkan event yang sesuai pada frame ayunan tiap animasi combo.
     // Caranya: buka Animator window → pilih animasi → di timeline klik kanan → Add Event
     // → pilih fungsi yang sesuai.
+
+    /// <summary>
+    /// [ANIMATION EVENT] Memicu VFX untuk animasi combo pertama.
+    /// </summary>
+    public void TriggerCombo1VFX()
+    {
+        TriggerAttackVFX(1);
+    }
+
+    /// <summary>
+    /// [ANIMATION EVENT] Memicu VFX untuk animasi combo kedua.
+    /// </summary>
+    public void TriggerCombo2VFX()
+    {
+        TriggerAttackVFX(2);
+    }
+
+    /// <summary>
+    /// [ANIMATION EVENT] Memicu VFX untuk animasi combo ketiga.
+    /// </summary>
+    public void TriggerCombo3VFX()
+    {
+        TriggerAttackVFX(3);
+    }
 
     /// <summary>
     /// [ANIMATION EVENT] Pemicu efek visual tebasan wand pada frame ayunan yang tepat.
     /// </summary>
     public void TriggerAttackVFX()
     {
-        TriggerAttackVFX(attackIndex);
+        int animationStep = GetAttackStateIndex(animator.GetCurrentAnimatorStateInfo(0));
+        if (animationStep == 0 && animator.IsInTransition(0))
+            animationStep = GetAttackStateIndex(animator.GetNextAnimatorStateInfo(0));
+
+        TriggerAttackVFX(animationStep > 0 ? animationStep : attackIndex);
     }
 
     /// <summary>
@@ -584,29 +586,29 @@ public class PlayerFight : MonoBehaviour
     {
         if (!isAttacking) return;
 
-        int targetStep = (step > 0) ? step : attackIndex;
-        if (targetStep != attackIndex)
+        if (step < 1 || step > hasSpawnedVFXForCombo.Length)
+            return;
+
+        int currentStateStep = GetAttackStateIndex(animator.GetCurrentAnimatorStateInfo(0));
+        int nextStateStep = animator.IsInTransition(0)
+            ? GetAttackStateIndex(animator.GetNextAnimatorStateInfo(0))
+            : 0;
+        if (step != currentStateStep && step != nextStateStep)
         {
             if (showDebugLogs)
-                Debug.Log($"[PlayerFight] Ignoring stale TriggerAttackVFX from step {step}; current step is {attackIndex}");
+                Debug.Log($"[PlayerFight] Ignoring TriggerAttackVFX from step {step}; current/next animation steps are {currentStateStep}/{nextStateStep}");
             return;
         }
 
-        if (hasSpawnedVFXThisAttack) return;
-        hasSpawnedVFXThisAttack = true;
-
-        if (autoVFXCoroutine != null)
-        {
-            StopCoroutine(autoVFXCoroutine);
-            autoVFXCoroutine = null;
-        }
+        if (hasSpawnedVFXForCombo[step - 1]) return;
+        hasSpawnedVFXForCombo[step - 1] = true;
 
         if (showDebugLogs)
-            Debug.Log($"[PlayerFight] TriggerAttackVFX via Animation Event → step={targetStep}");
+            Debug.Log($"[PlayerFight] TriggerAttackVFX via Animation Event → step={step}");
 
         if (enableSlashArcVFX)
         {
-            ExecuteSlashVFX(targetStep);
+            ExecuteSlashVFX(step);
         }
     }
 
@@ -865,12 +867,7 @@ public class PlayerFight : MonoBehaviour
 
         Debug.Log("[PlayerFight] Attack state reset.");
 
-        if (autoVFXCoroutine != null)
-        {
-            StopCoroutine(autoVFXCoroutine);
-            autoVFXCoroutine = null;
-        }
-        hasSpawnedVFXThisAttack = false;
+        System.Array.Clear(hasSpawnedVFXForCombo, 0, hasSpawnedVFXForCombo.Length);
 
         if (autoDamageCoroutine != null)
         {
@@ -883,6 +880,7 @@ public class PlayerFight : MonoBehaviour
         {
             tpc._isAttacking = false;
             tpc._lockRotation = false;
+            tpc._useAttackRootMotion = false;
         }
 
         if (animator != null)
