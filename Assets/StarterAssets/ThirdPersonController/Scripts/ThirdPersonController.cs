@@ -89,6 +89,7 @@ namespace StarterAssets
 
         [Tooltip("Lock rotation during attack root motion")]
         public bool _lockRotation = false;
+        public bool _useAttackRootMotion = false;
 
         // cinemachine
         private float _cinemachineTargetYaw;
@@ -310,7 +311,7 @@ namespace StarterAssets
 
         private void OnAnimatorMove()
         {
-            if (_hasAnimator && _lockRotation)
+            if (_hasAnimator && (_lockRotation || _useAttackRootMotion))
             {
                 Vector3 animatorDelta = _animator.deltaPosition;
                 if (Grounded)
@@ -318,7 +319,8 @@ namespace StarterAssets
                     Vector3 rootMotionVelocity = new Vector3(animatorDelta.x, 0, animatorDelta.z) / Time.deltaTime;
                     rootMotionVelocity.y = _verticalVelocity;
                     _controller.Move(rootMotionVelocity * Time.deltaTime);
-                    transform.rotation *= _animator.deltaRotation;
+                    if (_lockRotation)
+                        transform.rotation *= _animator.deltaRotation;
                 }
             }
         }

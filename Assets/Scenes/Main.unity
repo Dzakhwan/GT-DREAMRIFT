@@ -1148,6 +1148,10 @@ MonoBehaviour:
   maxEnemies: 5
   spawnRadius: 10
   spawnInterval: 3
+  respawnOnDeath: 0
+  onAllEnemiesCleared:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!4 &305027771
 Transform:
   m_ObjectHideFlags: 0
@@ -4878,7 +4882,7 @@ PrefabInstance:
       objectReference: {fileID: 1843287398}
     - target: {fileID: 4372390815790303942, guid: ec3f1a4fcc406874394f195572d79044, type: 3}
       propertyPath: preAttackDelay
-      value: 0.17
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4372390815790303942, guid: ec3f1a4fcc406874394f195572d79044, type: 3}
       propertyPath: comboWindowDuration

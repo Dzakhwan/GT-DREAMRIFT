@@ -385,6 +385,7 @@ public class PlayerFight : MonoBehaviour
         {
             tpc._isAttacking = true;
             tpc._lockRotation = false; // Saat pre-attack player masih bisa rotasi ke arah musuh/input
+            tpc._useAttackRootMotion = false;
         }
 
         if (showDebugLogs)
@@ -408,7 +409,8 @@ public class PlayerFight : MonoBehaviour
         if (tpc != null)
         {
             tpc._isAttacking = true;
-            tpc._lockRotation = true; // Kunci rotasi & aktifkan root motion pada OnAnimatorMove
+            tpc._lockRotation = false;
+            tpc._useAttackRootMotion = true;
         }
 
         if (animator != null)
@@ -725,6 +727,7 @@ public class PlayerFight : MonoBehaviour
         {
             tpc._isAttacking = false;
             tpc._lockRotation = false;
+            tpc._useAttackRootMotion = false;
         }
 
         if (animator != null)
