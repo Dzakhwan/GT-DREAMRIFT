@@ -13,8 +13,12 @@ MonoBehaviour:
   m_Name: Quest_01_Tutorial
   m_EditorClassIdentifier: Assembly-CSharp::Dreamrift.QuestSystem.QuestData
   questId: Quest_01_Tutorial
-  displayName: Tungtor Test
-  description: Awawawawawaaaaaaaaaaaaa
+  displayName: Langkah Pertama di Lembah
+  description: Jelajahi sekitar lembah dan temukan jejak altar kuno.
+  storyText: Kamu terbangun di bawah rindangnya pepohonan asing dengan aroma tanah
+    basah yang pekat. Suara gemerisik dedaunan membimbing langkahmu menuju ke kedalaman
+    lembah. Temukan apa yang tersembunyi di balik kabut sebelum kegelapan merayap
+    naik.
   prerequisites: []
   nextQuestsOnComplete: []
   objectiveType: 1
