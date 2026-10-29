@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bdce7339db42f8a44ab8172718e03eae, type: 3}
+  m_Name: Chapter_01_Valley
+  m_EditorClassIdentifier: Assembly-CSharp::Dreamrift.QuestSystem.QuestChapterData
+  chapterId: Chapter_01
+  chapterTitle: 'Chapter 1: Lembah Mimpi'
+  chapterOrder: 1
+  chapterPrologue: Dahulu kala, kabut tebal menyelimuti lembah misterius ini. Para
+    pengelana yang tersesat mempercayai bahwa siapa saja yang berhasil melintasi
+    lembah ini akan menemukan rahasia dunia yang terlupakan. Bersiaplah, karena perjalananmu
+    baru saja dimulai...
+  quests:
+  - {fileID: 11400000, guid: b9a117e027e0ff24c8fc5ebe0cecabc5, type: 2}
+  - {fileID: 11400000, guid: dc5b0b645d7df8148b358c0c58303577, type: 2}

@@ -13,14 +13,17 @@ MonoBehaviour:
   m_Name: New_Quest_20260803_000118
   m_EditorClassIdentifier: Assembly-CSharp::Dreamrift.QuestSystem.QuestData
   questId: New_Quest_20260803_000118
-  displayName: New Quest
-  description: 
+  displayName: Pembersihan Lembah
+  description: Kalahkan monster slime pengacau di dekat sungai.
+  storyText: Lembah ini dulunya dihuni oleh makhluk-makhluk yang bersahabat, namun
+    energi kegelapan yang merembes dari celah bebatuan membuat para slime menjadi
+    agresif. Singkirkan mereka untuk memulihkan ketenangan sungai.
   prerequisites: []
   nextQuestsOnComplete: []
   objectiveType: 1
   targetNpcId: 
   targetEnemyId: Slime
-  targetKillCount: 1
+  targetKillCount: 3
   targetItem: {fileID: 0}
   targetItemAmount: 1
   rewards: []

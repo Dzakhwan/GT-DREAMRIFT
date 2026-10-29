@@ -33,6 +33,10 @@ namespace Dreamrift.QuestSystem
         [SerializeField] private string displayName = "New Quest";
         [SerializeField, TextArea(2, 4)] private string description = "";
 
+        [Header("Narrative & Story (Halaman Kanan Buku)")]
+        [Tooltip("Teks cerita/lore lengkap yang ditampilkan di halaman kanan buku.")]
+        [SerializeField, TextArea(6, 18)] private string storyText = "";
+
         [Header("Branching & Prerequisites Chain")]
         [Tooltip("Quest yang harus diselesaikan lebih dulu sebelum quest ini dapat diambil/dimulai.")]
         [SerializeField] private List<QuestData> prerequisites = new List<QuestData>();
@@ -65,6 +69,7 @@ namespace Dreamrift.QuestSystem
         public string QuestId => questId;
         public string DisplayName => displayName;
         public string Description => description;
+        public string StoryText => !string.IsNullOrWhiteSpace(storyText) ? storyText : description;
         public List<QuestData> Prerequisites => prerequisites;
         public List<QuestData> NextQuestsOnComplete => nextQuestsOnComplete;
         public QuestObjectiveType ObjectiveType => objectiveType;

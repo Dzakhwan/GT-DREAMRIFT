@@ -131,6 +131,18 @@ namespace Dreamrift.QuestSystem
             return true;
         }
 
+        public void SetActiveQuest(QuestData quest)
+        {
+            if (quest == null) return;
+
+            QuestState state = GetQuestState(quest);
+            if (state == QuestState.Active)
+            {
+                CurrentActiveQuest = quest;
+                QuestStarted?.Invoke(quest);
+            }
+        }
+
         public bool CompleteQuest(QuestData quest)
         {
             if (quest == null)
