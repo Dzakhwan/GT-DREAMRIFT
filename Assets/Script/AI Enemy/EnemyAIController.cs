@@ -15,9 +15,11 @@ public class EnemyAIController : MonoBehaviour
     public enum EnemyState
     {
         Spawn,
+        Idle,
         Patrol,
         Chase,
         Attack,
+        ReturnHome,
         Dead
     }
 
@@ -31,6 +33,16 @@ public class EnemyAIController : MonoBehaviour
     [SerializeField] private float attackRange = 3f;
     [Tooltip("How often SetDestination is called while chasing (mobile CPU optimization).")]
     [SerializeField] private float chaseTickInterval = 0.15f;
+
+    [Header("Zone & Idle Behavior")]
+    [Tooltip("Jika aktif, musuh diam (Idle) di titik asal sampai pemain masuk ke zona deteksi.")]
+    [SerializeField] private bool idleUntilDetected = true;
+    [Tooltip("Multiplier dari detectionRadius sebelum musuh berhenti mengejar dan kembali pulang ke titik asal.")]
+    [SerializeField] private float deAggroMultiplier = 1.35f;
+    [Tooltip("Aktifkan animasi nafas squish lembut saat musuh diam (idle feel).")]
+    [SerializeField] private bool useIdleBreathing = true;
+    [SerializeField] private float idleBreathingSpeed = 2.2f;
+    [SerializeField] private float idleBreathingAmount = 0.045f;
 
     [Header("Patrol")]
     [Tooltip("Radius around spawn/home for random patrol points.")]
@@ -82,6 +94,8 @@ public class EnemyAIController : MonoBehaviour
     private float chaseTickTimer;
     private float repositionTimer;
     private float cooldownTimer;
+    private float idlePhaseOffset;
+    private float playerLookupTimer;
     private int enemyLayerMask;
     private readonly Collider[] separationResults = new Collider[8];
     private NavMeshPath pathCache;
@@ -95,6 +109,7 @@ public class EnemyAIController : MonoBehaviour
         health = GetComponent<EnemyHealth>();
         originalScale = transform.localScale;
         homePosition = transform.position;
+        idlePhaseOffset = Random.Range(0f, Mathf.PI * 2f);
         enemyLayerMask = LayerMask.GetMask("Enemy");
 
         // IMPORTANT: NavMeshPath MUST be created in Awake, not as a field
@@ -154,10 +169,16 @@ public class EnemyAIController : MonoBehaviour
         if (stateRoutine != null)
             StopCoroutine(stateRoutine);
 
+        if (currentState != EnemyState.Spawn)
+            transform.localScale = originalScale;
+
         switch (currentState)
         {
             case EnemyState.Spawn:
                 stateRoutine = StartCoroutine(SpawnState());
+                break;
+            case EnemyState.Idle:
+                stateRoutine = StartCoroutine(IdleState());
                 break;
             case EnemyState.Patrol:
                 stateRoutine = StartCoroutine(PatrolState());
@@ -167,6 +188,9 @@ public class EnemyAIController : MonoBehaviour
                 break;
             case EnemyState.Attack:
                 stateRoutine = StartCoroutine(AttackState());
+                break;
+            case EnemyState.ReturnHome:
+                stateRoutine = StartCoroutine(ReturnHomeState());
                 break;
             case EnemyState.Dead:
                 if (agent != null && agent.enabled)
@@ -217,13 +241,129 @@ public class EnemyAIController : MonoBehaviour
         if (IsPlayerInDetectionRange())
             TransitionTo(EnemyState.Chase);
         else
-            TransitionTo(EnemyState.Patrol);
+            TransitionTo(idleUntilDetected ? EnemyState.Idle : EnemyState.Patrol);
+    }
+
+    // ===================== IDLE =====================
+
+    private IEnumerator IdleState()
+    {
+        if (IsAgentReady())
+        {
+            agent.isStopped = true;
+            agent.ResetPath();
+            agent.velocity = Vector3.zero;
+        }
+
+        while (true)
+        {
+            if (IsPlayerInDetectionRange())
+            {
+                transform.localScale = originalScale;
+                TransitionTo(EnemyState.Chase);
+                yield break;
+            }
+
+            if (!IsAgentReady())
+            {
+                TryRebindAgentToNavMesh();
+            }
+            else if (!isKnockedBack && !agent.isStopped)
+            {
+                agent.isStopped = true;
+                agent.ResetPath();
+            }
+
+            if (useIdleBreathing)
+            {
+                float wave = Mathf.Sin((Time.time + idlePhaseOffset) * idleBreathingSpeed);
+                float xz = 1f + wave * idleBreathingAmount;
+                float y = 1f - wave * (idleBreathingAmount * 1.15f);
+                transform.localScale = new Vector3(
+                    originalScale.x * xz,
+                    originalScale.y * y,
+                    originalScale.z * xz);
+            }
+
+            yield return null;
+        }
+    }
+
+    // ===================== RETURN HOME =====================
+
+    private IEnumerator ReturnHomeState()
+    {
+        transform.localScale = originalScale;
+
+        if (IsAgentReady() && !isKnockedBack)
+            agent.isStopped = false;
+
+        float repathTimer = 0f;
+        float maxReturnTime = 12f;
+        float elapsed = 0f;
+
+        while (elapsed < maxReturnTime)
+        {
+            if (IsPlayerInDetectionRange())
+            {
+                TransitionTo(EnemyState.Chase);
+                yield break;
+            }
+
+            if (!IsAgentReady())
+            {
+                TryRebindAgentToNavMesh();
+                yield return null;
+                continue;
+            }
+
+            if (!isKnockedBack && agent.isStopped)
+                agent.isStopped = false;
+
+            repathTimer -= Time.deltaTime;
+            if (repathTimer <= 0f)
+            {
+                repathTimer = 0.25f;
+                agent.SetDestination(homePosition);
+            }
+
+            Vector3 flatDelta = homePosition - transform.position;
+            flatDelta.y = 0f;
+            float stopThreshold = Mathf.Max(0.4f, agent.stoppingDistance + 0.1f);
+
+            if (flatDelta.magnitude <= stopThreshold ||
+                (!agent.pathPending && agent.hasPath && agent.remainingDistance <= stopThreshold))
+            {
+                break;
+            }
+
+            if (agent.velocity.sqrMagnitude > 0.01f)
+                FaceDirection(agent.velocity);
+
+            if (agent.isOnOffMeshLink)
+                yield return StartCoroutine(TraverseOffMeshLink());
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        if (IsAgentReady())
+        {
+            agent.isStopped = true;
+            agent.ResetPath();
+            agent.velocity = Vector3.zero;
+        }
+
+        TransitionTo(idleUntilDetected ? EnemyState.Idle : EnemyState.Patrol);
     }
 
     // ===================== PATROL =====================
 
     private IEnumerator PatrolState()
     {
+        if (IsAgentReady() && !isKnockedBack)
+            agent.isStopped = false;
+
         while (true)
         {
             if (IsPlayerInDetectionRange())
@@ -275,23 +415,33 @@ public class EnemyAIController : MonoBehaviour
 
     private IEnumerator ChaseState()
     {
-        // Stagger timer agar seluruh musuh tidak menghitung pathfinding di frame yang sama
-        chaseTickTimer = Random.Range(0f, chaseTickInterval);
-        repositionTimer = Random.Range(0f, 0.4f);
+        transform.localScale = originalScale;
+
+        if (IsAgentReady() && !isKnockedBack)
+            agent.isStopped = false;
+
+        // Langsung hitung path di frame pertama saat pemain masuk zona, lalu stagger tick berikutnya
+        chaseTickTimer = chaseTickInterval;
+        repositionTimer = 0f;
 
         while (true)
         {
             if (playerTarget == null)
             {
-                TransitionTo(EnemyState.Patrol);
-                yield break;
+                EnsurePlayerTarget();
+                if (playerTarget == null)
+                {
+                    TransitionTo(idleUntilDetected ? EnemyState.ReturnHome : EnemyState.Patrol);
+                    yield break;
+                }
             }
 
             float dist = DistanceToPlayer();
+            float deAggroRadius = detectionRadius * Mathf.Max(1f, deAggroMultiplier);
 
-            if (dist > detectionRadius)
+            if (dist > deAggroRadius)
             {
-                TransitionTo(EnemyState.Patrol);
+                TransitionTo(idleUntilDetected ? EnemyState.ReturnHome : EnemyState.Patrol);
                 yield break;
             }
 
@@ -318,6 +468,9 @@ public class EnemyAIController : MonoBehaviour
                 yield return null;
                 continue;
             }
+
+            if (!isKnockedBack && agent.isStopped)
+                agent.isStopped = false;
 
             chaseTickTimer += Time.deltaTime;
             repositionTimer -= Time.deltaTime;
@@ -426,10 +579,11 @@ public class EnemyAIController : MonoBehaviour
             agent.isStopped = false;
         }
 
-        if (IsPlayerInDetectionRange())
+        float deAggroRadius = detectionRadius * Mathf.Max(1f, deAggroMultiplier);
+        if (playerTarget != null && DistanceToPlayer() <= deAggroRadius)
             TransitionTo(EnemyState.Chase);
         else
-            TransitionTo(EnemyState.Patrol);
+            TransitionTo(idleUntilDetected ? EnemyState.ReturnHome : EnemyState.Patrol);
     }
 
     // ===================== DEAD =====================
@@ -467,8 +621,22 @@ public class EnemyAIController : MonoBehaviour
         return false;
     }
 
+    private void EnsurePlayerTarget()
+    {
+        if (playerTarget != null) return;
+        if (Time.time < playerLookupTimer) return;
+
+        playerLookupTimer = Time.time + 0.5f;
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+            playerTarget = player.transform;
+    }
+
     private bool IsPlayerInDetectionRange()
     {
+        if (playerTarget == null)
+            EnsurePlayerTarget();
+
         return playerTarget != null && DistanceToPlayer() <= detectionRadius;
     }
 
@@ -695,6 +863,9 @@ public class EnemyAIController : MonoBehaviour
 
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
+
+        Gizmos.color = new Color(0.25f, 0.65f, 1f, 0.45f);
+        Gizmos.DrawWireSphere(transform.position, detectionRadius * Mathf.Max(1f, deAggroMultiplier));
 
         float range = attackPattern != null ? attackPattern.AttackRange : attackRange;
         Gizmos.color = Color.red;

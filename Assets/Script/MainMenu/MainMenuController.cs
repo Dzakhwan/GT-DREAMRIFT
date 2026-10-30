@@ -13,6 +13,9 @@ public class MainMenuController : MonoBehaviour
     // Slot untuk Drag & Drop Panel Credits (Tarik GameObject 'Credits Panel' ke sini di Inspector)
     public GameObject creditsPanel;
 
+    // Slot untuk Drag & Drop Panel Upgrade Senjata (Tarik GameObject 'Upgrade Panel' ke sini di Inspector)
+    public GameObject upgradePanel;
+
     [Header("Main Menu Blocking")]
     // Slot untuk Drag & Drop CanvasGroup yang ada di GameObject 'Main Menu'
     // (container yang isinya tombol NewGame, Settings, Exit)
@@ -158,6 +161,44 @@ public class MainMenuController : MonoBehaviour
 
         // Main Menu tetap ke-block, karena Settings masih terbuka
         SetMainMenuInteractable(false);
+    }
+
+    // ===================== UPGRADE SENJATA =====================
+
+    // Fungsi ini dipanggil saat tombol UPGRADE SENJATA diklik
+    public void OpenUpgradePanel()
+    {
+        if (settingsPanel != null)
+        {
+            settingsPanel.SetActive(false);
+        }
+
+        if (creditsPanel != null)
+        {
+            creditsPanel.SetActive(false);
+        }
+
+        if (upgradePanel != null)
+        {
+            upgradePanel.SetActive(true);
+        }
+        else
+        {
+            Debug.LogError("UpgradePanel belum di-assign di Inspector!");
+        }
+
+        SetMainMenuInteractable(false);
+    }
+
+    // Fungsi ini dipanggil saat tombol X di panel Upgrade diklik
+    public void CloseUpgradePanel()
+    {
+        if (upgradePanel != null)
+        {
+            upgradePanel.SetActive(false);
+        }
+
+        SetMainMenuInteractable(true);
     }
 
     // Fungsi ini dipanggil saat tombol EXIT GAME diklik

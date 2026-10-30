@@ -27190,7 +27190,7 @@ AnimationClip:
     floatParameter: 0
     intParameter: 2
     messageOptions: 0
-  - time: 0.7
+  - time: 0.467
     functionName: TriggerCombo2VFX
     data: 
     objectReferenceParameter: {fileID: 0}

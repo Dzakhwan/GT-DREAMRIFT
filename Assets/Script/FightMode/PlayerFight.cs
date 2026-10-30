@@ -66,11 +66,20 @@ public class PlayerFight : MonoBehaviour
     [Tooltip("Prefab efek busur tebasan ayunan pedang di udara (default fallback)")]
     [SerializeField] private GameObject slashArcVFXPrefab;
 
-    [Tooltip("Prefab efek busur tebasan khusus per fase combo (Fase 1: Horizontal sweep, Fase 2: Reverse rising, Fase 3: Heavy finisher)")]
+    [Tooltip("Prefab efek busur tebasan khusus per fase combo (Fase 1: Horizontal R->L, Fase 2: Horizontal L->R, Fase 3: Heavy horizontal finisher)")]
     [SerializeField] private GameObject[] comboSlashVFXPrefabs = new GameObject[3];
 
     [Tooltip("Aktifkan efek busur sabetan pedang saat Animation Event TriggerAttackVFX dipanggil")]
     [SerializeField] private bool enableSlashArcVFX = true;
+
+    [Tooltip("Ketinggian spawn busur tebasan dari titik kaki Player (meter)")]
+    [SerializeField] private float slashHeightOffset = 0.95f;
+
+    [Tooltip("Jarak maju pusat busur tebasan di depan Player untuk Combo 1 & 2 (meter)")]
+    [SerializeField] private float slashForwardOffsetPhase12 = 0.72f;
+
+    [Tooltip("Jarak maju pusat busur tebasan di depan Player untuk Combo 3 Finisher (meter)")]
+    [SerializeField] private float slashForwardOffsetPhase3 = 0.88f;
 
     [Header("Knockback Settings")]
     [Tooltip("Jarak dorongan knockback per combo step (meter)")]
@@ -505,37 +514,69 @@ public class PlayerFight : MonoBehaviour
 
         if (vfxToSpawn == null) return;
 
-        // 2. Tentukan posisi dan rotasi sesuai arah ayunan tiap fase combo (menyesuaikan kamera isometrik)
-        // Posisikan tepat di depan pemain agar busur tebasan selalu terlihat jelas oleh kamera
+        // 2. Orientasi murni horizontal sejajar permukaan tanah (XZ plane, Euler X = 90)
+        // agar tidak diagonal dan selalu terlihat jelas 360 derajat termasuk saat Player menghadap kamera
+        Vector3 flatForward = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+        if (flatForward.sqrMagnitude < 0.0001f)
+            flatForward = transform.forward;
+        flatForward.Normalize();
+
+        Quaternion flatYawRot = Quaternion.LookRotation(flatForward, Vector3.up);
         Vector3 spawnPos;
-        Quaternion rot;
-        float destroyDelay = 0.45f;
+        Quaternion rot = flatYawRot * Quaternion.Euler(90f, 0f, 0f);
+        float destroyDelay;
 
         switch (comboStep)
         {
             case 1:
                 // Fase 1: Sapuan horizontal kanan ke kiri
-                spawnPos = transform.position + transform.forward * 1.25f + Vector3.up * 0.85f;
-                rot = transform.rotation * Quaternion.Euler(70f, 0f, 5f);
-                destroyDelay = 0.45f;
+                spawnPos = transform.position + flatForward * slashForwardOffsetPhase12 + Vector3.up * slashHeightOffset;
+                destroyDelay = 0.55f;
                 break;
             case 2:
-                // Fase 2: Ayunan menyilang naik dari kiri bawah ke kanan atas
-                spawnPos = transform.position + transform.forward * 1.25f + Vector3.up * 0.85f;
-                rot = transform.rotation * Quaternion.Euler(60f, -15f, -30f);
-                destroyDelay = 0.45f;
+                // Fase 2: Sapuan horizontal balik kiri ke kanan
+                spawnPos = transform.position + flatForward * slashForwardOffsetPhase12 + Vector3.up * slashHeightOffset;
+                destroyDelay = 0.55f;
                 break;
             case 3:
             default:
-                // Fase 3: Tebasan pamungkas berat (Sonic Gale Blast) lurus ke depan
-                spawnPos = transform.position + transform.forward * 1.50f + Vector3.up * 0.85f;
-                rot = transform.rotation * Quaternion.Euler(75f, 0f, 0f);
-                destroyDelay = 0.65f;
+                // Fase 3: Tebasan pamungkas horizontal lebar ke depan
+                spawnPos = transform.position + flatForward * slashForwardOffsetPhase3 + Vector3.up * slashHeightOffset;
+                destroyDelay = 0.75f;
                 break;
         }
 
         GameObject arc = Instantiate(vfxToSpawn, spawnPos, rot);
+        ApplyUpgradeTierToVfx(arc);
         Destroy(arc, destroyDelay);
+    }
+
+    // ===================== WEAPON UPGRADE (VFX TIER) =====================
+    /// <summary>
+    /// Menerapkan tier upgrade senjata pada instance VFX:
+    /// warna partikel di-tint sesuai level upgrade + scale diperbesar.
+    /// Hanya mengubah instance runtime — prefab & material di Asset tetap aman.
+    /// </summary>
+    private void ApplyUpgradeTierToVfx(GameObject vfxInstance)
+    {
+        if (vfxInstance == null) return;
+
+        Color tierColor = WeaponUpgradeData.GetVfxColor();
+        float tierScale = WeaponUpgradeData.GetVfxScale();
+
+        if (tierColor != Color.white || tierScale != 1f)
+        {
+            // Tint semua ParticleSystem di instance (startColor di-multiply dengan warna tier)
+            ParticleSystem[] systems = vfxInstance.GetComponentsInChildren<ParticleSystem>(true);
+            foreach (ParticleSystem ps in systems)
+            {
+                var main = ps.main;
+                Color baseColor = main.startColor.Evaluate(0.5f);
+                main.startColor = baseColor * tierColor;
+            }
+
+            vfxInstance.transform.localScale *= tierScale;
+        }
     }
 
     // ===================== ANIMATION EVENTS =====================
@@ -642,10 +683,10 @@ public class PlayerFight : MonoBehaviour
             autoDamageCoroutine = null;
         }
 
-        // Hitung damage final berdasarkan combo step saat ini
-        int finalDamage = baseDamage;
+        // Hitung damage final berdasarkan combo step saat ini (+ bonus dari level upgrade senjata)
         int comboIndex = Mathf.Clamp(attackIndex - 1, 0, comboDamageMultipliers.Length - 1);
-        finalDamage = Mathf.RoundToInt(baseDamage * comboDamageMultipliers[comboIndex]);
+        int upgradedBaseDamage = baseDamage + WeaponUpgradeData.BonusDamage;
+        int finalDamage = Mathf.RoundToInt(upgradedBaseDamage * comboDamageMultipliers[comboIndex]);
 
         if (showDebugLogs)
             Debug.Log($"[PlayerFight] DealDamage dipanggil. Combo step {attackIndex}, damage: {finalDamage}");
@@ -718,6 +759,7 @@ public class PlayerFight : MonoBehaviour
                 if (impactPrefabToSpawn != null)
                 {
                     GameObject impact = Instantiate(impactPrefabToSpawn, contactPoint, Quaternion.LookRotation(hitNormal));
+                    ApplyUpgradeTierToVfx(impact);
                     Destroy(impact, 1.2f);
                 }
 
@@ -728,9 +770,10 @@ public class PlayerFight : MonoBehaviour
 
                 if (slicePrefabToSpawn != null)
                 {
-                    float sliceAngle = attackIndex == 1 ? 0f : (attackIndex == 2 ? -35f : 65f);
+                    float sliceAngle = (attackIndex == 2) ? 180f : 0f;
                     Quaternion sliceRot = Quaternion.LookRotation(transform.forward) * Quaternion.Euler(0f, 0f, sliceAngle);
                     GameObject slice = Instantiate(slicePrefabToSpawn, contactPoint, sliceRot);
+                    ApplyUpgradeTierToVfx(slice);
                     Destroy(slice, 1.2f);
                 }
 
