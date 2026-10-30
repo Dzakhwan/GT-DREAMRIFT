@@ -19,6 +19,7 @@ Proyek ini dibangun secara modular menggunakan C# dengan sistem-sistem utama ber
 
 ### 1. Sistem Pertarungan (Action Combat & Combo)
 - **Third-Person Action Combat**: Sistem pertarungan *real-time* berbasis kombo serangan beruntun.
+- **Dash / Dodge Roll & Invulnerability Frames (I-Frames)**: Mekanik menghindar cepat dengan menekan **`Left Shift` (`L Shift`)** di PC atau tombol Dash di Mobile. Karakter melakukan animasi menyelam berguling (*Roll Dodge*), mendapatkan status kebal (*Invincible*) dari semua serangan musuh (Melee, Slime dash, dan proyektil) selama durasi roll, serta memiliki kemampuan *Attack Cancel* untuk membatalkan animasi tebasan saat musuh melancarkan serangan mendadak.
 - **AI Musuh Variatif**: Kecerdasan buatan musuh dengan tipe serangan berbeda (Melee, Ranged, & Slime behavior).
 - **Health & Damage System**: Pengaturan status HP, damage calculation, dan efek kena serang (*hit reaction*).
 
@@ -70,6 +71,7 @@ Game ini mendukung **Unity New Input System** (Keyboard + Mouse untuk PC & Touch
 | Aksi | Keyboard & Mouse (PC) | Mobile (Android) |
 | :--- | :--- | :--- |
 | **Pergerakan Karakter** | `W, A, S, D` | On-Screen Virtual Joystick |
+| **Dash / Menghindar (Dodge Roll)** | `L Shift` (Left Shift) | Virtual Sprint/Dash Button |
 | **Kamera** | Mouse Movement (Tahan Klik Kanan) | On-Screen Touch Drag |
 | **Serangan Combo** | Klik Kiri Mouse (`LMB`) | Virtual Attack Button |
 | **Interaksi (Pintu/NPC/Loot)** | `E` / `F` | Virtual Interact Button |

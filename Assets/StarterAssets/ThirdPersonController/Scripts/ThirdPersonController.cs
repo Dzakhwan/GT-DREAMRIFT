@@ -84,12 +84,36 @@ namespace StarterAssets
         [Tooltip("Fixed pitch angle in degrees for Isometric POV perspective (e.g. 25)")]
         public float fixedPitchAngle = 25.0f;
 
+        [Header("Dash / Dodge Settings")]
+        [Tooltip("Burst speed saat melakukan dash (m/s)")]
+        public float DashSpeed = 16.0f;
+
+        [Tooltip("Durasi dash dalam detik")]
+        public float DashDuration = 0.45f;
+
+        [Tooltip("Cooldown sebelum bisa dash kembali (detik)")]
+        public float DashCooldown = 0.75f;
+
+        [Tooltip("Durasi invulnerability frames (kebal serangan musuh) saat dash")]
+        public float DashIFrameDuration = 0.40f;
+
         [Tooltip("For locking the camera position on all axis")]
         public bool _isAttacking = false;
 
         [Tooltip("Lock rotation during attack root motion")]
         public bool _lockRotation = false;
         public bool _useAttackRootMotion = false;
+
+        // dash state
+        private bool _isDashing = false;
+        private float _dashTimer = 0.0f;
+        private float _dashCooldownTimer = 0.0f;
+        private Vector3 _dashDirection = Vector3.forward;
+        private int _animIDDash;
+        private PlayerFight _playerFight;
+        private PlayerHealth _playerHealth;
+
+        public bool IsDashing => _isDashing;
 
         // cinemachine
         private float _cinemachineTargetYaw;
@@ -155,6 +179,8 @@ namespace StarterAssets
             _hasAnimator = TryGetComponent(out _animator);
             _controller = GetComponent<CharacterController>();
             _input = GetComponent<StarterAssetsInputs>();
+            _playerFight = GetComponent<PlayerFight>();
+            _playerHealth = GetComponent<PlayerHealth>();
 #if ENABLE_INPUT_SYSTEM
             _playerInput = GetComponent<PlayerInput>();
 #else
@@ -170,6 +196,7 @@ namespace StarterAssets
 
         private void Update()
         {
+            HandleDash();
             JumpAndGravity();
             GroundedCheck();
             Move();
@@ -187,6 +214,7 @@ namespace StarterAssets
             _animIDJump = Animator.StringToHash("Jump");
             _animIDFreeFall = Animator.StringToHash("FreeFall");
             _animIDMotionSpeed = Animator.StringToHash("MotionSpeed");
+            _animIDDash = Animator.StringToHash("Dash");
         }
 
         private void GroundedCheck()
@@ -237,8 +265,98 @@ namespace StarterAssets
                 _cinemachineTargetYaw, 0.0f);
         }
 
+        private void HandleDash()
+        {
+            if (_dashCooldownTimer > 0.0f)
+            {
+                _dashCooldownTimer -= Time.deltaTime;
+            }
+
+            // Cek apakah player meminta dash (melalui input.dash atau input.sprint yang ditekan)
+            if (_input != null && (_input.dash || _input.sprint) && _dashCooldownTimer <= 0.0f && Grounded)
+            {
+                StartDash();
+            }
+
+            // Reset flag dash dan sprint agar tidak auto-trigger setiap frame saat tombol ditahan
+            if (_input != null)
+            {
+                _input.dash = false;
+                _input.sprint = false;
+            }
+
+            if (_isDashing)
+            {
+                _dashTimer -= Time.deltaTime;
+                if (_dashTimer <= 0.0f)
+                {
+                    _isDashing = false;
+                }
+            }
+        }
+
+        private void StartDash()
+        {
+            _isDashing = true;
+            _dashTimer = DashDuration;
+            _dashCooldownTimer = DashCooldown;
+
+            // 1. Tentukan arah dash
+            // Jika ada input gerakan WASD/Joystick, dash ke arah input tersebut relatif terhadap kamera
+            Vector3 inputDirection = new Vector3(_input.move.x, 0.0f, _input.move.y).normalized;
+            if (inputDirection != Vector3.zero)
+            {
+                float targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg + _mainCamera.transform.eulerAngles.y;
+                transform.rotation = Quaternion.Euler(0.0f, targetRotation, 0.0f);
+                _dashDirection = (Quaternion.Euler(0.0f, targetRotation, 0.0f) * Vector3.forward).normalized;
+                _targetRotation = targetRotation;
+            }
+            else
+            {
+                // Jika tidak ada input WASD, dash ke depan arah hadap karakter saat ini
+                _dashDirection = transform.forward;
+            }
+
+            // 2. Batalkan serangan yang sedang berlangsung (Attack Cancel)
+            if (_playerFight != null)
+            {
+                _playerFight.CancelAttack();
+            }
+            _isAttacking = false;
+
+            // 3. Picu I-Frames di PlayerHealth agar kebal terhadap serangan musuh
+            if (_playerHealth != null)
+            {
+                _playerHealth.TriggerIFrame(DashIFrameDuration);
+            }
+
+            // 4. Mainkan animasi Dash di Animator
+            if (_hasAnimator)
+            {
+                _animator.SetTrigger(_animIDDash);
+            }
+        }
+
         private void Move()
         {
+            // EKSEKUSI DASH / DODGE ROLL
+            if (_isDashing)
+            {
+                // Kecepatan burst meluruh dari DashSpeed ke SprintSpeed seiring berjalannya durasi dash
+                float dashProgress = 1.0f - Mathf.Clamp01(_dashTimer / DashDuration);
+                float currentDashSpeed = Mathf.Lerp(DashSpeed, SprintSpeed, dashProgress);
+
+                _controller.Move(_dashDirection * (currentDashSpeed * Time.deltaTime) +
+                                 new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
+
+                if (_hasAnimator)
+                {
+                    _animator.SetFloat(_animIDSpeed, SprintSpeed);
+                    _animator.SetFloat(_animIDMotionSpeed, 1.0f);
+                }
+                return;
+            }
+
             // Pergerakan selalu menggunakan kecepatan lari (SprintSpeed); Left Shift dinonaktifkan
             float targetSpeed = SprintSpeed;
 
@@ -327,7 +445,7 @@ namespace StarterAssets
 
         private void JumpAndGravity()
         {
-            if (_isAttacking)
+            if (_isAttacking || _isDashing)
             {
                 _input.jump = false;
             }

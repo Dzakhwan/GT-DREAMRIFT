@@ -12,6 +12,7 @@ namespace StarterAssets
 		public Vector2 look;
 		public bool jump;
 		public bool sprint;
+		public bool dash;
 
 		public bool fire;
 
@@ -118,6 +119,15 @@ namespace StarterAssets
 		public void OnSprint(InputValue value)
 		{
 			SprintInput(value.isPressed);
+			if (value.isPressed)
+			{
+				DashInput(true);
+			}
+		}
+
+		public void OnDash(InputValue value)
+		{
+			DashInput(value.isPressed);
 		}
 
 		public void OnFire(InputValue value)
@@ -169,6 +179,11 @@ namespace StarterAssets
 		public void SprintInput(bool newSprintState)
 		{
 			sprint = newSprintState;
+		}
+
+		public void DashInput(bool newDashState)
+		{
+			dash = newDashState;
 		}
 
 		private void OnApplicationFocus(bool hasFocus)
