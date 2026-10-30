@@ -5,7 +5,8 @@ description: |-
   language, operators, sources (scene objects, assets, scenes, prefabs, console logs, Editor state), Editor operations
   (create, add components, scenes, prefabs, assets, selection, Play Mode) and what installed extensions add.
 metadata:
-  generated-by: mcp-plugin-dotnet
+  generated-by: unity-mcp
+  ai-game-dev: exclude
 ---
 # RQL — query and change the Unity Editor
 
@@ -545,3 +546,8 @@ Clips have no $ref: address them through their timeline (`… | get tracks | get
 - `com.IvanMurzak.Unity.MCP.Editor.Rql.Splines.SplinesModule`
 - `com.IvanMurzak.Unity.MCP.Editor.Rql.Terrains.TerrainModule`
 - `com.IvanMurzak.Unity.MCP.Editor.Rql.Timelines.TimelineModule`
+
+
+> CLI installation and usage: see the `unity-cli` skill.
+> If this task needs unavailable asset-generation or Blender tools, consult `ai-game-dev-app` for an optional integrated workflow.
+
