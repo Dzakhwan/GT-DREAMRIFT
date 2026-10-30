@@ -19,10 +19,11 @@ Proyek ini dibangun secara modular menggunakan C# dengan sistem-sistem utama ber
 
 ### 1. Sistem Pertarungan (Action Combat & Combo)
 - **Third-Person Action Combat**: Sistem pertarungan *real-time* berbasis kombo serangan beruntun.
+- **Dash / Dodge Roll & Invulnerability Frames (I-Frames)**: Mekanik menghindar cepat dengan menekan **`Left Shift` (`L Shift`)** di PC atau tombol Dash di Mobile. Karakter melakukan animasi menyelam berguling (*Roll Dodge*), mendapatkan status kebal (*Invincible*) dari semua serangan musuh (Melee, Slime dash, dan proyektil) selama durasi roll, serta memiliki kemampuan *Attack Cancel* untuk membatalkan animasi tebasan saat musuh melancarkan serangan mendadak.
 - **AI Musuh Variatif**: Kecerdasan buatan musuh dengan tipe serangan berbeda (Melee, Ranged, & Slime behavior).
 - **Health & Damage System**: Pengaturan status HP, damage calculation, dan efek kena serang (*hit reaction*).
 
-### 2. Sistem Quest Bercabang & Quest Log UI
+### 2. Sistem Quest Bercabang & Quest Book UI Interaktif
 - **Sistem Quest Bercabang (Branching Quests & Prerequisite Chain)**:
   - Pelacakan alur quest bercabang dengan syarat pembuka (`Prerequisites`) dan quest kelanjutan (`NextQuestsOnComplete`).
   - Status Quest runtime: `Locked` (terkunci), `Available` (siap diambil), `Active` (sedang berjalan), dan `Complete` (selesai).
@@ -32,7 +33,16 @@ Proyek ini dibangun secara modular menggunakan C# dengan sistem-sistem utama ber
   - ⚔️ **DefeatEnemy**: Mengalahkan sejumlah musuh (terhubung otomatis ke `EnemyHealth.Die()`).
   - 🎒 **CollectItem**: Mengumpulkan item di inventaris.
 - **Multiple Item Rewards**: Pengiriman otomatis hadiah item (`QuestReward[]`) langsung ke [InventoryManager](Assets/Script/InventorySystem/InventoryManager.cs) saat quest diselesaikan.
-- **Quest Log UI Skeleton**: Panel UI daftar quest (List View & Detail Panel) yang dapat di-toggle via shortcut **`J`** di PC atau tombol UI di Mobile.
+- **Interactive Quest Book UI (Buku Catatan Petualang)**:
+  - **Tampilan Buku Perkamen 2 Halaman**:
+    - **Halaman Kiri**: Navigasi Chapter/Level (`<` & `>`), daftar misi terstruktur dengan indikator status, pemilihan quest, dan tombol pelacakan (*Track Quest*).
+    - **Halaman Kanan**: Narasi cerita & lore petualang yang dinamis sesuai quest terpilih, catatan rahasia petualang, dan stempel cap lilin kelulusan misi (*Completion Stamp*).
+  - **Sistem Bab Tersegel (Sealed Chapters)**:
+    - Bab lanjutan yang belum terbuka ditandai dengan status tersegel, stempel segel merah, dan instruksi penyelesaian chapter sebelumnya.
+  - **Animasi Lembaran & Transisi Teks (Smooth Page Flip & Fade In/Out)**:
+    - **Buka & Tutup Instan**: Akses cepat tanpa animasi buka/tutup yang memperlambat alur bermain (dapat diakses via shortcut **`J`** di PC atau tombol HUD di Mobile).
+    - **Animasi Lembaran Dua Arah**: Pemutaran animasi lembaran membalik sesuai arah navigasi (kanan-ke-kiri untuk bab maju, kiri-ke-kanan untuk bab mundur).
+    - **Transisi Fade In & Fade Out**: Teks dan konten memudar keluar (*fade out*) saat tombol bab diklik, lembaran fisik membalik bersih, data bab baru diperbarui, lalu teks bab baru memudar masuk (*fade in*) secara elegan dan responsif.
 
 ### 3. Sistem Inventaris & World Item Pickup
 - **Inventory System**: Penyimpanan item hasil pengumpulan (*loot*) dan hadiah quest di sepanjang eksplorasi.
@@ -49,6 +59,7 @@ Proyek ini dibangun secara modular menggunakan C# dengan sistem-sistem utama ber
 
 ### 5. Custom Editor Tools (Developer Workflows)
 - **2D Visual Quest Node Graph Editor (`Tools > Quest System > Visual Quest Creator`)**: Editor Window 2D interaktif untuk me-render alur percabangan quest sebagai kartu node 2D yang dapat di-drag, dilengkapi **Garis Lengkung Bezier Curves (`Handles.DrawBezier`)**, **Node Linking Tool**, **Auto Layout**, serta **Live Play Mode Debugger**.
+- **Interactive Quest Book Generator (`Tools > Quest System > Generate Quest Book Prefabs` & `Setup Quest Book in Current Scene`)**: Tool otomatisasi untuk merakit seluruh komponen hierarki UI buku (frame animation, font Irish Grover, scroll view, tombol navigasi, dan layer CanvasGroup) langsung ke prefab dan Canvas aktif.
 - **Interactive Terrain & GameObject Cropper (`Tools > Terrain > Interactive Cropper`)**: Tool internal untuk memotong (*crop*) atau membagi (*split grid*) Unity Terrain beserta objek dekorasi/props secara visual di Scene View.
 
 ---
@@ -60,6 +71,7 @@ Game ini mendukung **Unity New Input System** (Keyboard + Mouse untuk PC & Touch
 | Aksi | Keyboard & Mouse (PC) | Mobile (Android) |
 | :--- | :--- | :--- |
 | **Pergerakan Karakter** | `W, A, S, D` | On-Screen Virtual Joystick |
+| **Dash / Menghindar (Dodge Roll)** | `L Shift` (Left Shift) | Virtual Sprint/Dash Button |
 | **Kamera** | Mouse Movement (Tahan Klik Kanan) | On-Screen Touch Drag |
 | **Serangan Combo** | Klik Kiri Mouse (`LMB`) | Virtual Attack Button |
 | **Interaksi (Pintu/NPC/Loot)** | `E` / `F` | Virtual Interact Button |
@@ -121,8 +133,9 @@ Untuk mengaktifkan pipeline Game CI di repositori Anda, daftarkan secret berikut
    - Pastikan menggunakan versi Unity 6 yang sesuai.
 4. **Membuka Tools Visual (Editor Tools)**:
    - **2D Visual Quest Creator & Node Graph**: Klik menu **`Tools > Quest System > Visual Quest Creator`**.
+   - **Setup Quest Book UI**: Klik menu **`Tools > Quest System > Setup Quest Book in Current Scene`**.
    - **Interactive Terrain Cropper**: Klik menu **`Tools > Terrain > Interactive Cropper`**.
 5. **Membuka Scene Utama**:
    - Navigasi ke `Assets/Scenes/`.
-   - Buka scene `MainMenu.unity` atau `Lvl1.unity`.
+   - Buka scene `MainMenu.unity` atau `LV 1.unity`.
    - Tekan tombol **Play** (`Ctrl + P`) di Unity Editor.

@@ -38,11 +38,13 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private int currentHealth;
     private bool isInvincible = false;
     private bool isDead = false;
+    private Coroutine iFrameCoroutine;
 
     // Property publik untuk dibaca script lain
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
     public bool IsDead => isDead;
+    public bool IsInvincible => isInvincible;
     public float HealthPercent => (float)currentHealth / maxHealth;
 
     // ===================== UNITY LIFECYCLE =====================
@@ -224,6 +226,35 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         isInvincible = true;
         yield return new WaitForSeconds(invincibilityDuration);
         isInvincible = false;
+    }
+
+    /// <summary>
+    /// Memicu Invincibility Frames (I-Frames) selama durasi tertentu (misal saat Dash / Dodge Roll).
+    /// </summary>
+    public void TriggerIFrame(float duration)
+    {
+        if (isDead) return;
+        if (iFrameCoroutine != null)
+        {
+            StopCoroutine(iFrameCoroutine);
+        }
+        iFrameCoroutine = StartCoroutine(IFrameRoutine(duration));
+    }
+
+    private IEnumerator IFrameRoutine(float duration)
+    {
+        isInvincible = true;
+        yield return new WaitForSeconds(duration);
+        isInvincible = false;
+        iFrameCoroutine = null;
+    }
+
+    /// <summary>
+    /// Set manual status kebal (invincible) Player.
+    /// </summary>
+    public void SetInvincible(bool state)
+    {
+        isInvincible = state;
     }
 
     private IEnumerator ShowDamageVignette()

@@ -262,7 +262,67 @@ namespace Dreamrift.QuestSystem.Editor
             lpRt.anchorMax = new Vector2(0.47f, 0.88f);
             lpRt.offsetMin = Vector2.zero;
             lpRt.offsetMax = Vector2.zero;
+            QuestBookLeftPageUI leftUI = SetupLeftPageComponents(leftPageGo, titleFont, bodyFont, entryPrefab);
 
+            // --- RIGHT PAGE (STORY & LORE) ---
+            GameObject rightPageGo = new GameObject("RightPage_Story", typeof(RectTransform), typeof(QuestBookRightPageUI));
+            rightPageGo.transform.SetParent(pagesGroup.transform, false);
+            RectTransform rpRt = rightPageGo.GetComponent<RectTransform>();
+            rpRt.anchorMin = new Vector2(0.53f, 0.10f);
+            rpRt.anchorMax = new Vector2(0.92f, 0.88f);
+            rpRt.offsetMin = Vector2.zero;
+            rpRt.offsetMax = Vector2.zero;
+            QuestBookRightPageUI rightUI = SetupRightPageComponents(rightPageGo, titleFont, bodyFont);
+
+            // 4. Close Button ('X')
+            GameObject closeBtnGo = new GameObject("CloseBookButton", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            closeBtnGo.transform.SetParent(bookObj.transform, false);
+            RectTransform clRt = closeBtnGo.GetComponent<RectTransform>();
+            clRt.anchorMin = new Vector2(1f, 1f);
+            clRt.anchorMax = new Vector2(1f, 1f);
+            clRt.anchoredPosition = new Vector2(-48f, -48f);
+            clRt.sizeDelta = new Vector2(44f, 44f);
+            Image clImg = closeBtnGo.GetComponent<Image>();
+            clImg.color = new Color(0.75f, 0.22f, 0.18f); // Merah wax
+            CreateSimpleText(closeBtnGo.transform, "X", titleFont, 24f, FontStyles.Bold, Color.white);
+
+            // Master QuestBookUI Setup on systemRoot (which stays active!)
+            QuestBookUI bookUI = systemRoot.AddComponent<QuestBookUI>();
+            SerializedObject bookSo = new SerializedObject(bookUI);
+            bookSo.FindProperty("bookPanelRoot").objectReferenceValue = panelRoot;
+            bookSo.FindProperty("pagesCanvasGroup").objectReferenceValue = cg;
+            bookSo.FindProperty("frameAnimator").objectReferenceValue = anim;
+            bookSo.FindProperty("leftPage").objectReferenceValue = leftUI;
+            bookSo.FindProperty("rightPage").objectReferenceValue = rightUI;
+            bookSo.FindProperty("pageFadeDuration").floatValue = 0.15f;
+            bookSo.FindProperty("closeButton").objectReferenceValue = closeBtnGo.GetComponent<Button>();
+            bookSo.FindProperty("toggleShortcutKey").intValue = (int)KeyCode.J;
+
+            // Assign Chapter_01_Valley.asset and Chapter_02_Forest.asset
+            QuestChapterData ch1 = AssetDatabase.LoadAssetAtPath<QuestChapterData>("Assets/Data/Quests/Chapter_01_Valley.asset");
+            QuestChapterData ch2 = AssetDatabase.LoadAssetAtPath<QuestChapterData>("Assets/Data/Quests/Chapter_02_Forest.asset");
+            List<QuestChapterData> chapterList = new List<QuestChapterData>();
+            if (ch1 != null) chapterList.Add(ch1);
+            if (ch2 != null) chapterList.Add(ch2);
+
+            SerializedProperty chapList = bookSo.FindProperty("chapters");
+            chapList.arraySize = chapterList.Count;
+            for (int i = 0; i < chapterList.Count; i++)
+            {
+                chapList.GetArrayElementAtIndex(i).objectReferenceValue = chapterList[i];
+            }
+
+            bookSo.ApplyModifiedProperties();
+
+            // Sembunyikan panel buku di awal, tapi systemRoot tetap aktif agar input Key J selalu terdeteksi
+            panelRoot.SetActive(false);
+
+            PrefabUtility.SaveAsPrefabAsset(systemRoot, BookPanelPrefabPath);
+            Object.DestroyImmediate(systemRoot);
+        }
+
+        private static QuestBookLeftPageUI SetupLeftPageComponents(GameObject leftPageGo, TMP_FontAsset titleFont, TMP_FontAsset bodyFont, QuestBookEntryUI entryPrefab)
+        {
             // Chapter Header bar
             GameObject chapHeader = new GameObject("ChapterHeader", typeof(RectTransform));
             chapHeader.transform.SetParent(leftPageGo.transform, false);
@@ -418,7 +478,7 @@ namespace Dreamrift.QuestSystem.Editor
             Image siImg = sealIconGo.GetComponent<Image>();
             siImg.color = new Color(0.68f, 0.16f, 0.14f, 0.92f); // Merah stempel lilin pekat
             Outline siOl = sealIconGo.GetComponent<Outline>();
-            siOl.effectColor = new Color(0.35f, 0.08f, 0.05f, 0.8f);
+            siOl.effectColor = new Color(0.35f, 0.05f, 0.05f, 0.8f);
             siOl.effectDistance = new Vector2(2f, -2f);
             CreateSimpleText(sealIconGo.transform, "X", titleFont, 44f, FontStyles.Bold, new Color(0.96f, 0.90f, 0.76f));
 
@@ -457,6 +517,7 @@ namespace Dreamrift.QuestSystem.Editor
 
             // Hook up QuestBookLeftPageUI
             QuestBookLeftPageUI leftUI = leftPageGo.GetComponent<QuestBookLeftPageUI>();
+            if (leftUI == null) leftUI = leftPageGo.AddComponent<QuestBookLeftPageUI>();
             SerializedObject leftSo = new SerializedObject(leftUI);
             leftSo.FindProperty("chapterTitleText").objectReferenceValue = ctText;
             leftSo.FindProperty("chapterCounterText").objectReferenceValue = cntText;
@@ -471,15 +532,11 @@ namespace Dreamrift.QuestSystem.Editor
             leftSo.FindProperty("sealedNoticeText").objectReferenceValue = snText;
             leftSo.ApplyModifiedProperties();
 
-            // --- RIGHT PAGE (STORY & LORE) ---
-            GameObject rightPageGo = new GameObject("RightPage_Story", typeof(RectTransform), typeof(QuestBookRightPageUI));
-            rightPageGo.transform.SetParent(pagesGroup.transform, false);
-            RectTransform rpRt = rightPageGo.GetComponent<RectTransform>();
-            rpRt.anchorMin = new Vector2(0.53f, 0.10f);
-            rpRt.anchorMax = new Vector2(0.92f, 0.88f);
-            rpRt.offsetMin = Vector2.zero;
-            rpRt.offsetMax = Vector2.zero;
+            return leftUI;
+        }
 
+        private static QuestBookRightPageUI SetupRightPageComponents(GameObject rightPageGo, TMP_FontAsset titleFont, TMP_FontAsset bodyFont)
+        {
             // Normal Story Container
             GameObject normalStoryGo = new GameObject("NormalStoryContainer", typeof(RectTransform));
             normalStoryGo.transform.SetParent(rightPageGo.transform, false);
@@ -606,7 +663,7 @@ namespace Dreamrift.QuestSystem.Editor
             stpRt.localEulerAngles = new Vector3(0f, 0f, -12f);
             Image stpImg = stampGo.GetComponent<Image>();
             stpImg.color = new Color(0.75f, 0.15f, 0.15f, 0.85f); // Merah stempel lilin
-            CreateSimpleText(stampGo.transform, "TERLESELESAIKAN", titleFont, 14f, FontStyles.Bold, Color.white);
+            CreateSimpleText(stampGo.transform, "TERSELESAIKAN", titleFont, 14f, FontStyles.Bold, Color.white);
             stampGo.SetActive(false);
 
             // Sealed Story Container (under rightPageGo)
@@ -681,6 +738,7 @@ namespace Dreamrift.QuestSystem.Editor
 
             // Hook up QuestBookRightPageUI
             QuestBookRightPageUI rightUI = rightPageGo.GetComponent<QuestBookRightPageUI>();
+            if (rightUI == null) rightUI = rightPageGo.AddComponent<QuestBookRightPageUI>();
             SerializedObject rightSo = new SerializedObject(rightUI);
             rightSo.FindProperty("storyTitleText").objectReferenceValue = stText;
             rightSo.FindProperty("chapterSubheadingText").objectReferenceValue = shText;
@@ -694,50 +752,7 @@ namespace Dreamrift.QuestSystem.Editor
             rightSo.FindProperty("sealedStampGraphic").objectReferenceValue = sealBadgeGo;
             rightSo.ApplyModifiedProperties();
 
-            // 4. Close Button ('X')
-            GameObject closeBtnGo = new GameObject("CloseBookButton", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
-            closeBtnGo.transform.SetParent(bookObj.transform, false);
-            RectTransform clRt = closeBtnGo.GetComponent<RectTransform>();
-            clRt.anchorMin = new Vector2(1f, 1f);
-            clRt.anchorMax = new Vector2(1f, 1f);
-            clRt.anchoredPosition = new Vector2(-48f, -48f);
-            clRt.sizeDelta = new Vector2(44f, 44f);
-            Image clImg = closeBtnGo.GetComponent<Image>();
-            clImg.color = new Color(0.75f, 0.22f, 0.18f); // Merah wax
-            CreateSimpleText(closeBtnGo.transform, "X", titleFont, 24f, FontStyles.Bold, Color.white);
-
-            // Master QuestBookUI Setup on systemRoot (which stays active!)
-            QuestBookUI bookUI = systemRoot.AddComponent<QuestBookUI>();
-            SerializedObject bookSo = new SerializedObject(bookUI);
-            bookSo.FindProperty("bookPanelRoot").objectReferenceValue = panelRoot;
-            bookSo.FindProperty("pagesCanvasGroup").objectReferenceValue = cg;
-            bookSo.FindProperty("frameAnimator").objectReferenceValue = anim;
-            bookSo.FindProperty("leftPage").objectReferenceValue = leftUI;
-            bookSo.FindProperty("rightPage").objectReferenceValue = rightUI;
-            bookSo.FindProperty("closeButton").objectReferenceValue = closeBtnGo.GetComponent<Button>();
-            bookSo.FindProperty("toggleShortcutKey").intValue = (int)KeyCode.J;
-
-            // Assign Chapter_01_Valley.asset and Chapter_02_Forest.asset
-            QuestChapterData ch1 = AssetDatabase.LoadAssetAtPath<QuestChapterData>("Assets/Data/Quests/Chapter_01_Valley.asset");
-            QuestChapterData ch2 = AssetDatabase.LoadAssetAtPath<QuestChapterData>("Assets/Data/Quests/Chapter_02_Forest.asset");
-            List<QuestChapterData> chapterList = new List<QuestChapterData>();
-            if (ch1 != null) chapterList.Add(ch1);
-            if (ch2 != null) chapterList.Add(ch2);
-
-            SerializedProperty chapList = bookSo.FindProperty("chapters");
-            chapList.arraySize = chapterList.Count;
-            for (int i = 0; i < chapterList.Count; i++)
-            {
-                chapList.GetArrayElementAtIndex(i).objectReferenceValue = chapterList[i];
-            }
-
-            bookSo.ApplyModifiedProperties();
-
-            // Sembunyikan panel buku di awal, tapi systemRoot tetap aktif agar input Key J selalu terdeteksi
-            panelRoot.SetActive(false);
-
-            PrefabUtility.SaveAsPrefabAsset(systemRoot, BookPanelPrefabPath);
-            Object.DestroyImmediate(systemRoot);
+            return rightUI;
         }
 
         private static void CreateHudButton(Canvas canvas, QuestBookUI bookUI)

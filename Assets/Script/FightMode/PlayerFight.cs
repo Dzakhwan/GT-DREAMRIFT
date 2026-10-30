@@ -855,6 +855,17 @@ public class PlayerFight : MonoBehaviour
         return 0;
     }
 
+    /// <summary>
+    /// Membatalkan serangan yang sedang berlangsung secara instan (misal saat player melakukan Dash / Dodge).
+    /// </summary>
+    public void CancelAttack()
+    {
+        if (isAttacking || isPreAttacking)
+        {
+            ResetAttackState();
+        }
+    }
+
     private void ResetAttackState()
     {
         isAttacking = false;
