@@ -43,10 +43,17 @@ namespace Dreamrift.QuestSystem
         [Tooltip("Daftar Chapter yang akan ditampilkan di Quest Book.")]
         [SerializeField] private List<QuestChapterData> chapters = new List<QuestChapterData>();
 
+        [Header("Page Turn Transition")]
+        [Tooltip("Durasi efek Fade In dan Fade Out saat membalik halaman (dalam detik).")]
+        [SerializeField, Range(0.05f, 0.5f)] private float pageFadeDuration = 0.15f;
+        [Tooltip("Jika dicentang, arah animasi dibalik.")]
+        [SerializeField] private bool invertFlipAnimationDirection = false;
+
         private int currentChapterIndex = 0;
         private QuestData currentSelectedQuest;
         private bool isTransitioning = false;
         private bool wasCursorLockedBeforeOpen = true;
+        private Coroutine pageTurnCoroutine;
 
         // Cache player movement inputs
         private StarterAssets.StarterAssetsInputs cachedPlayerInputs;
@@ -108,6 +115,12 @@ namespace Dreamrift.QuestSystem
 
         private void OnDestroy()
         {
+            if (pageTurnCoroutine != null)
+            {
+                StopCoroutine(pageTurnCoroutine);
+                pageTurnCoroutine = null;
+            }
+
             if (QuestManager.Instance != null)
             {
                 QuestManager.Instance.QuestStateChanged -= OnQuestStateChanged;
@@ -159,7 +172,8 @@ namespace Dreamrift.QuestSystem
 
         public void OpenBook()
         {
-            if (isTransitioning || bookPanelRoot == null) return;
+            if (bookPanelRoot == null) return;
+            isTransitioning = false;
 
             ResolvePlayerInputs();
             bookPanelRoot.SetActive(true);
@@ -183,6 +197,13 @@ namespace Dreamrift.QuestSystem
             }
 
             PlaySound(bookOpenSound);
+
+            // Batalkan transisi aktif jika ada
+            if (pageTurnCoroutine != null)
+            {
+                StopCoroutine(pageTurnCoroutine);
+                pageTurnCoroutine = null;
+            }
 
             // Buka instan tanpa animasi: langsung pasang frame buku terbuka (frame 18)
             if (frameAnimator != null && frameAnimator.TotalFrames > 0)
@@ -211,13 +232,27 @@ namespace Dreamrift.QuestSystem
 
         public void CloseBook()
         {
-            if (isTransitioning || bookPanelRoot == null || !IsOpen()) return;
+            if (bookPanelRoot == null || !IsOpen()) return;
 
             PlaySound(bookCloseSound);
+
+            // Batalkan transisi jika sedang berjalan
+            if (pageTurnCoroutine != null)
+            {
+                StopCoroutine(pageTurnCoroutine);
+                pageTurnCoroutine = null;
+            }
 
             // Tutup instan tanpa animasi penutup
             bookPanelRoot.SetActive(false);
             isTransitioning = false;
+
+            if (pagesCanvasGroup != null)
+            {
+                pagesCanvasGroup.alpha = 1f;
+                pagesCanvasGroup.interactable = true;
+                pagesCanvasGroup.blocksRaycasts = true;
+            }
 
             if (pauseGameWhileOpen)
             {
@@ -270,53 +305,113 @@ namespace Dreamrift.QuestSystem
 
         private void OnChapterNavigated(int delta)
         {
-            if (isTransitioning || chapters == null || chapters.Count == 0) return;
+            if (!IsOpen() || isTransitioning || chapters == null || chapters.Count == 0) return;
 
             int newIndex = Mathf.Clamp(currentChapterIndex + delta, 0, chapters.Count - 1);
             if (newIndex == currentChapterIndex) return;
 
-            isTransitioning = true;
-            PlaySound(pageTurnSound);
+            if (pageTurnCoroutine != null)
+            {
+                StopCoroutine(pageTurnCoroutine);
+            }
+            pageTurnCoroutine = StartCoroutine(PageTurnSequence(delta, newIndex));
+        }
 
-            // Sembunyikan konten halaman sebentar saat membalik buku
+        private System.Collections.IEnumerator PageTurnSequence(int delta, int newIndex)
+        {
+            isTransitioning = true;
+
+            // Kunci interaksi tombol agar tidak bisa diklik berulang kali selama transisi
             if (pagesCanvasGroup != null)
             {
-                pagesCanvasGroup.alpha = 0f;
                 pagesCanvasGroup.interactable = false;
                 pagesCanvasGroup.blocksRaycasts = false;
             }
 
-            Action onPageTurnDone = () =>
+            // 1. FADE OUT (Teks dan konten memudar keluar: Alpha 1 -> 0)
+            if (pagesCanvasGroup != null && pageFadeDuration > 0f)
             {
-                currentChapterIndex = newIndex;
-                currentSelectedQuest = null; // Reset pilihan saat pindah bab
-                RefreshCurrentView();
-
-                // Pastikan kembali ke frame buku terbuka penuh setelah animasi selesai
-                if (frameAnimator != null && frameAnimator.TotalFrames > 0)
+                float startAlpha = pagesCanvasGroup.alpha;
+                float elapsed = 0f;
+                while (elapsed < pageFadeDuration)
                 {
-                    frameAnimator.SetFrame(frameAnimator.TotalFrames - 1);
+                    elapsed += Time.unscaledDeltaTime;
+                    pagesCanvasGroup.alpha = Mathf.Lerp(startAlpha, 0f, elapsed / pageFadeDuration);
+                    yield return null;
                 }
+                pagesCanvasGroup.alpha = 0f;
+            }
+            else if (pagesCanvasGroup != null)
+            {
+                pagesCanvasGroup.alpha = 0f;
+            }
 
-                if (pagesCanvasGroup != null)
-                {
-                    pagesCanvasGroup.alpha = 1f;
-                    pagesCanvasGroup.interactable = true;
-                    pagesCanvasGroup.blocksRaycasts = true;
-                }
+            // 2. PUTAR ANIMASI LEMBARAN MEMBALIK
+            PlaySound(pageTurnSound);
 
-                isTransitioning = false;
-            };
+            bool isMovingForward = delta > 0;
+            if (invertFlipAnimationDirection) isMovingForward = !isMovingForward;
 
-            // Putar animasi membalik halaman khusus saat navigasi bab
+            bool animFinished = false;
+            Action onAnimationComplete = () => animFinished = true;
+
             if (frameAnimator != null && frameAnimator.TotalFrames > 0)
             {
-                frameAnimator.PlayForward(onPageTurnDone);
+                if (isMovingForward)
+                {
+                    // Chapter kecil ke besar: kanan ke kiri (PlayForward, frame 0 -> 18)
+                    frameAnimator.PlayForward(onAnimationComplete);
+                }
+                else
+                {
+                    // Chapter besar ke kecil: kiri ke kanan (PlayReverse, frame 18 -> 0)
+                    frameAnimator.PlayReverse(onAnimationComplete);
+                }
+
+                while (!animFinished)
+                {
+                    yield return null;
+                }
+
+                // Pastikan kembali ke frame buku terbuka penuh setelah animasi selesai
+                frameAnimator.SetFrame(frameAnimator.TotalFrames - 1);
             }
             else
             {
-                onPageTurnDone();
+                yield return null;
             }
+
+            // 3. PERBARUI ISI CHAPTER BARU (Saat alpha masih 0)
+            currentChapterIndex = newIndex;
+            currentSelectedQuest = null; // Reset pilihan saat pindah bab
+            RefreshCurrentView();
+
+            // 4. FADE IN (Teks dan konten bab baru memudar masuk: Alpha 0 -> 1)
+            if (pagesCanvasGroup != null && pageFadeDuration > 0f)
+            {
+                float elapsed = 0f;
+                while (elapsed < pageFadeDuration)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    pagesCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / pageFadeDuration);
+                    yield return null;
+                }
+                pagesCanvasGroup.alpha = 1f;
+            }
+            else if (pagesCanvasGroup != null)
+            {
+                pagesCanvasGroup.alpha = 1f;
+            }
+
+            // Kembalikan interaksi
+            if (pagesCanvasGroup != null)
+            {
+                pagesCanvasGroup.interactable = true;
+                pagesCanvasGroup.blocksRaycasts = true;
+            }
+
+            isTransitioning = false;
+            pageTurnCoroutine = null;
         }
 
         public void RefreshCurrentView()

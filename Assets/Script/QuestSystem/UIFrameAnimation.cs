@@ -24,9 +24,20 @@ namespace Dreamrift.QuestSystem
         private Coroutine activeAnimationCoroutine;
         private int currentFrameIndex = 0;
 
+        /// <summary>
+        /// Event yang dipanggil setiap kali frame berganti: (frameIndex, normalizedProgress 0..1).
+        /// </summary>
+        public event Action<int, float> OnFrameProgress;
+
+        /// <summary>
+        /// Event yang dipanggil saat animasi selesai.
+        /// </summary>
+        public event Action OnAnimationComplete;
+
         public bool IsPlaying => activeAnimationCoroutine != null;
         public int CurrentFrameIndex => currentFrameIndex;
         public int TotalFrames => frames != null ? frames.Length : 0;
+        public float FramesPerSecond => framesPerSecond;
 
         private void Awake()
         {
@@ -61,6 +72,7 @@ namespace Dreamrift.QuestSystem
 
             currentFrameIndex = Mathf.Clamp(index, 0, frames.Length - 1);
             targetImage.sprite = frames[currentFrameIndex];
+            OnFrameProgress?.Invoke(currentFrameIndex, 0f);
         }
 
         public void PlayForward(Action onComplete = null)
@@ -68,6 +80,7 @@ namespace Dreamrift.QuestSystem
             if (frames == null || frames.Length == 0)
             {
                 onComplete?.Invoke();
+                OnAnimationComplete?.Invoke();
                 return;
             }
 
@@ -80,6 +93,7 @@ namespace Dreamrift.QuestSystem
             if (frames == null || frames.Length == 0)
             {
                 onComplete?.Invoke();
+                OnAnimationComplete?.Invoke();
                 return;
             }
 
@@ -100,6 +114,7 @@ namespace Dreamrift.QuestSystem
         {
             currentFrameIndex = startIndex;
             float interval = 1f / Mathf.Max(1f, framesPerSecond);
+            int totalSteps = Mathf.Abs(endIndex - startIndex);
 
             while (true)
             {
@@ -107,6 +122,9 @@ namespace Dreamrift.QuestSystem
                 {
                     targetImage.sprite = frames[currentFrameIndex];
                 }
+
+                float progress = totalSteps > 0 ? (float)Mathf.Abs(currentFrameIndex - startIndex) / totalSteps : 1f;
+                OnFrameProgress?.Invoke(currentFrameIndex, progress);
 
                 if (currentFrameIndex == endIndex)
                 {
@@ -130,6 +148,7 @@ namespace Dreamrift.QuestSystem
 
             activeAnimationCoroutine = null;
             onComplete?.Invoke();
+            OnAnimationComplete?.Invoke();
         }
     }
 }
