@@ -964,8 +964,13 @@ MonoBehaviour:
   LockCameraPosition: 0
   lockPitchAngle: 1
   fixedPitchAngle: 25
+  DashSpeed: 16
+  DashDuration: 0.45
+  DashCooldown: 0.75
+  DashIFrameDuration: 0.4
   _isAttacking: 0
   _lockRotation: 0
+  _useAttackRootMotion: 0
 --- !u!114 &5701410894467884179
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -999,6 +1004,7 @@ MonoBehaviour:
   look: {x: 0, y: 0}
   jump: 0
   sprint: 0
+  dash: 0
   fire: 0
   analogMovement: 0
   cursorLocked: 1
@@ -1175,6 +1181,9 @@ MonoBehaviour:
   - {fileID: 3719970204866746162, guid: f403ab4856762e74a9c3e1322e97152a, type: 3}
   - {fileID: 1365781975958028635, guid: 85141bbeb5484424a857375d369264c6, type: 3}
   enableSlashArcVFX: 1
+  slashHeightOffset: 0.95
+  slashForwardOffsetPhase12: 0.95
+  slashForwardOffsetPhase3: 1.15
   comboKnockbackDistances:
   - 1.2
   - 2

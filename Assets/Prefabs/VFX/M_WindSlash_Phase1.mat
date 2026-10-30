@@ -21,20 +21,19 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: M_WindSlash_Phase1
-  m_Shader: {fileID: 4800000, guid: 0406db5a14f94604a8c57ccfbc9f3b46, type: 3}
+  m_Shader: {fileID: 4800000, guid: 502bb89bec6c3af408bd1ba90959b780, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
-  - _SURFACE_TYPE_TRANSPARENT
+  m_ValidKeywords: []
   m_InvalidKeywords:
   - _ADDITIVEBLEND
   - _FLIPBOOKBLENDING_OFF
+  - _SURFACE_TYPE_TRANSPARENT
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 1
   m_CustomRenderQueue: 3000
-  stringTagMap:
-    RenderType: Transparent
+  stringTagMap: {}
   disabledShaderPasses:
   - DepthOnly
   - SHADOWCASTER
@@ -72,23 +71,35 @@ Material:
     - _DistortionStrengthScaled: 0.1
     - _DstBlend: 10
     - _DstBlendAlpha: 10
+    - _EndAngleDeg: 130
     - _FlipbookBlending: 0
     - _FlipbookMode: 0
+    - _HeadSoftness: 0.09
+    - _LeadingGlowIntensity: 1.45
+    - _LeadingGlowWidth: 0.15
+    - _ManualProgress: -1
     - _Mode: 0
     - _QueueOffset: 0
+    - _RevealDuration: 0.46
     - _SoftParticlesEnabled: 0
     - _SoftParticlesFarFadeDistance: 1
     - _SoftParticlesNearFadeDistance: 0
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
+    - _StartAngleDeg: 148
     - _Surface: 1
+    - _SweepDirection: 1
+    - _TailSoftness: 0.19
+    - _TailStart: 0.22
     - _ZWrite: 0
     m_Colors:
-    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ArcCenter: {r: 0.529, g: 0.372, b: 0, a: 0}
+    - _BaseColor: {r: 1.3, g: 1.45, b: 1.65, a: 1}
     - _BaseColorAddSubDiff: {r: 0, g: 0, b: 0, a: 0}
     - _CameraFadeParams: {r: 0, g: Infinity, b: 0, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _LeadingGlowColor: {r: 1.6, g: 2.2, b: 2.7, a: 1}
     - _SoftParticleFadeParams: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
