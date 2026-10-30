@@ -535,7 +535,36 @@ public class PlayerFight : MonoBehaviour
         }
 
         GameObject arc = Instantiate(vfxToSpawn, spawnPos, rot);
+        ApplyUpgradeTierToVfx(arc);
         Destroy(arc, destroyDelay);
+    }
+
+    // ===================== WEAPON UPGRADE (VFX TIER) =====================
+    /// <summary>
+    /// Menerapkan tier upgrade senjata pada instance VFX:
+    /// warna partikel di-tint sesuai level upgrade + scale diperbesar.
+    /// Hanya mengubah instance runtime — prefab & material di Asset tetap aman.
+    /// </summary>
+    private void ApplyUpgradeTierToVfx(GameObject vfxInstance)
+    {
+        if (vfxInstance == null) return;
+
+        Color tierColor = WeaponUpgradeData.GetVfxColor();
+        float tierScale = WeaponUpgradeData.GetVfxScale();
+
+        if (tierColor != Color.white || tierScale != 1f)
+        {
+            // Tint semua ParticleSystem di instance (startColor di-multiply dengan warna tier)
+            ParticleSystem[] systems = vfxInstance.GetComponentsInChildren<ParticleSystem>(true);
+            foreach (ParticleSystem ps in systems)
+            {
+                var main = ps.main;
+                Color baseColor = main.startColor.Evaluate(0.5f);
+                main.startColor = baseColor * tierColor;
+            }
+
+            vfxInstance.transform.localScale *= tierScale;
+        }
     }
 
     // ===================== ANIMATION EVENTS =====================
@@ -642,10 +671,10 @@ public class PlayerFight : MonoBehaviour
             autoDamageCoroutine = null;
         }
 
-        // Hitung damage final berdasarkan combo step saat ini
-        int finalDamage = baseDamage;
+        // Hitung damage final berdasarkan combo step saat ini (+ bonus dari level upgrade senjata)
         int comboIndex = Mathf.Clamp(attackIndex - 1, 0, comboDamageMultipliers.Length - 1);
-        finalDamage = Mathf.RoundToInt(baseDamage * comboDamageMultipliers[comboIndex]);
+        int upgradedBaseDamage = baseDamage + WeaponUpgradeData.BonusDamage;
+        int finalDamage = Mathf.RoundToInt(upgradedBaseDamage * comboDamageMultipliers[comboIndex]);
 
         if (showDebugLogs)
             Debug.Log($"[PlayerFight] DealDamage dipanggil. Combo step {attackIndex}, damage: {finalDamage}");
@@ -718,6 +747,7 @@ public class PlayerFight : MonoBehaviour
                 if (impactPrefabToSpawn != null)
                 {
                     GameObject impact = Instantiate(impactPrefabToSpawn, contactPoint, Quaternion.LookRotation(hitNormal));
+                    ApplyUpgradeTierToVfx(impact);
                     Destroy(impact, 1.2f);
                 }
 
@@ -731,6 +761,7 @@ public class PlayerFight : MonoBehaviour
                     float sliceAngle = attackIndex == 1 ? 0f : (attackIndex == 2 ? -35f : 65f);
                     Quaternion sliceRot = Quaternion.LookRotation(transform.forward) * Quaternion.Euler(0f, 0f, sliceAngle);
                     GameObject slice = Instantiate(slicePrefabToSpawn, contactPoint, sliceRot);
+                    ApplyUpgradeTierToVfx(slice);
                     Destroy(slice, 1.2f);
                 }
 
