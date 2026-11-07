@@ -282,7 +282,7 @@ file and re-imported at once, and is undoable. Paths look like `"<Keyboard>/spac
 
 ```
 input | call CreateAsset("Assets/Input/Player.inputactions", "Player")   path, map? (first action map); missing folders are created
-input | get assets | select $ref name path
+input | get assets | select $ref name assetPath
 unity.asset("Assets/Input/Player.inputactions") | call AddControlScheme("Keyboard&Mouse", ["<Keyboard>", "<Mouse>"])   name, requiredDevices?, optionalDevices?, bindingGroup? (default: name)
 unity.asset("Assets/Input/Player.inputactions") | call AddControlScheme("Gamepad", ["<Gamepad>"])
 unity.asset("Assets/Input/Player.inputactions") | call AddMap("UI")

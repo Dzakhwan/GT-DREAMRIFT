@@ -1662,7 +1662,6 @@ GameObject:
   - component: {fileID: 8040121887833144327}
   - component: {fileID: 9014307313277642165}
   - component: {fileID: 1568792694185831711}
-  - component: {fileID: 578447499570258263}
   m_Layer: 0
   m_Name: BookContainer
   m_TagString: Untagged
@@ -1679,17 +1678,17 @@ RectTransform:
   m_GameObject: {fileID: 4805438268826903229}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.72, y: 0.72, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8212702632725636473}
   - {fileID: 3311872116355997660}
   m_Father: {fileID: 1470172352230185992}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_SizeDelta: {x: 1360, y: 765}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8040121887833144327
 CanvasRenderer:
@@ -1719,9 +1718,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: c1c628c6a1eee0f44a445dc6ffdef19c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 416d86cc037754141933b9a87b882fa5, type: 3}
   m_Type: 0
-  m_PreserveAspect: 0
+  m_PreserveAspect: 1
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -1743,42 +1742,28 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Dreamrift.QuestSystem.UIFrameAnimation
   targetImage: {fileID: 9014307313277642165}
   frames:
-  - {fileID: 21300000, guid: dde941d8df4d39b43b014bc82e3f1490, type: 3}
-  - {fileID: 21300000, guid: c4e002aba9f131a4184e86d1ca6c414f, type: 3}
-  - {fileID: 21300000, guid: 7fc076d61b839fa4595888254e035a61, type: 3}
-  - {fileID: 21300000, guid: 7bf0f79682d26d3428c66481039df114, type: 3}
-  - {fileID: 21300000, guid: 70b17b3139846194ca757635380d5823, type: 3}
-  - {fileID: 21300000, guid: 86b5e1d3745f6be4c9c88993fa7d2805, type: 3}
-  - {fileID: 21300000, guid: bce0c38908291b34898b5c53ff9a8eb3, type: 3}
-  - {fileID: 21300000, guid: 1b11431401fd77f41a4aea16e945f6b1, type: 3}
-  - {fileID: 21300000, guid: 49fec7b9b9f840d4daec70be4ad2d0fe, type: 3}
-  - {fileID: 21300000, guid: de1acc21d1dcfef49b3012ed3cc10d13, type: 3}
-  - {fileID: 21300000, guid: 50b842b79b2571747b423af4482c78a8, type: 3}
-  - {fileID: 21300000, guid: ac718f6c7d810fd46b69827e025a1dc5, type: 3}
-  - {fileID: 21300000, guid: 682318c4b44edff49b2447f9ba37aa86, type: 3}
-  - {fileID: 21300000, guid: 306c657697822a448a1fbe29ecc86161, type: 3}
-  - {fileID: 21300000, guid: c858b01ba4e4865418d058a3814eb256, type: 3}
-  - {fileID: 21300000, guid: 50e5d9c03f79f374089e59e7c32e1e63, type: 3}
-  - {fileID: 21300000, guid: 7a9faee946b01864ab83faded6533e84, type: 3}
-  - {fileID: 21300000, guid: 063d38719fd55534d941ca018390020f, type: 3}
-  - {fileID: 21300000, guid: c1c628c6a1eee0f44a445dc6ffdef19c, type: 3}
+  - {fileID: 21300000, guid: 8bb75a72e8b76ef4c894fe93adfce1d3, type: 3}
+  - {fileID: 21300000, guid: 4e8988b65b20a5f49a509b4594f56f1b, type: 3}
+  - {fileID: 21300000, guid: 616f6719308df1246906592fac62e501, type: 3}
+  - {fileID: 21300000, guid: ef5243dd065a2e7429d1a58684a3d6f5, type: 3}
+  - {fileID: 21300000, guid: 6a33f5e2fcb25a44db1754bf9eef17eb, type: 3}
+  - {fileID: 21300000, guid: fb7f42ba09b9b9f4d80aed3eb15eca21, type: 3}
+  - {fileID: 21300000, guid: 59fdbfddf4c1d264eb552dcdbce27cb8, type: 3}
+  - {fileID: 21300000, guid: e24bdfb24e0a06d4ba64a8c22568ec7b, type: 3}
+  - {fileID: 21300000, guid: 04a582eb4f15e07419b0d95036fb2d9e, type: 3}
+  - {fileID: 21300000, guid: 9d5ffc7fce5da9c45b0a113e06a1b362, type: 3}
+  - {fileID: 21300000, guid: 11cec264066fec342bf96d4b200944e1, type: 3}
+  - {fileID: 21300000, guid: d316cc5e8a452f344b29c30bcd5171ea, type: 3}
+  - {fileID: 21300000, guid: 5e9041048036aed4b8e8f3bef58c2849, type: 3}
+  - {fileID: 21300000, guid: 6d4c6c43dd11a09498e6518b9294c989, type: 3}
+  - {fileID: 21300000, guid: 95ddf98c0f9e47744b25edbb85bfe7b2, type: 3}
+  - {fileID: 21300000, guid: 2cdc7f7f76ffee741b87dc69ce6d7e4a, type: 3}
+  - {fileID: 21300000, guid: c3c0927e01d13ad4b82c48c78e11b8b1, type: 3}
+  - {fileID: 21300000, guid: 1161d627fa1ab6e479f56886c1ac46bb, type: 3}
+  - {fileID: 21300000, guid: 416d86cc037754141933b9a87b882fa5, type: 3}
   framesPerSecond: 24
   loop: 0
   playOnEnable: 0
---- !u!114 &578447499570258263
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4805438268826903229}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 86710e43de46f6f4bac7c8e50813a599, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.AspectRatioFitter
-  m_AspectMode: 3
-  m_AspectRatio: 1.7777778
 --- !u!1 &5525268477860083659
 GameObject:
   m_ObjectHideFlags: 0
