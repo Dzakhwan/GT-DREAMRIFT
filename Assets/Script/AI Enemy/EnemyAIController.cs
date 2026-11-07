@@ -125,12 +125,7 @@ public class EnemyAIController : MonoBehaviour
 
     private void Start()
     {
-        if (playerTarget == null)
-        {
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null)
-                playerTarget = player.transform;
-        }
+        EnsurePlayerTarget();
 
         if (health != null)
             health.OnDeath += HandleDeath;
@@ -475,8 +470,12 @@ public class EnemyAIController : MonoBehaviour
             chaseTickTimer += Time.deltaTime;
             repositionTimer -= Time.deltaTime;
 
+            bool isReadyToAttack = cooldownTimer <= 0f;
             bool shouldUpdatePath = chaseTickTimer >= chaseTickInterval;
-            if (useSwarmPositioning)
+
+            // Hanya gunakan perilaku swarm/orbit saat musuh sedang cooldown serangan.
+            // Saat serangan siap, musuh harus langsung mengejar pemain secara agresif!
+            if (useSwarmPositioning && !isReadyToAttack)
             {
                 bool arrived = !agent.pathPending && agent.remainingDistance <= agent.stoppingDistance;
                 shouldUpdatePath = repositionTimer <= 0f || arrived;
@@ -486,7 +485,7 @@ public class EnemyAIController : MonoBehaviour
             {
                 chaseTickTimer = 0f;
 
-                if (useSwarmPositioning)
+                if (useSwarmPositioning && !isReadyToAttack)
                 {
                     if (TryGetSwarmPosition(out Vector3 swarmPos))
                         agent.SetDestination(swarmPos);
@@ -623,10 +622,19 @@ public class EnemyAIController : MonoBehaviour
 
     private void EnsurePlayerTarget()
     {
-        if (playerTarget != null) return;
+        if (playerTarget != null && playerTarget.gameObject.activeInHierarchy) return;
         if (Time.time < playerLookupTimer) return;
 
         playerLookupTimer = Time.time + 0.5f;
+
+        // Prioritaskan mencari PlayerHealth asli agar tidak terkelabui objek mock/dummy di scene
+        var playerHealth = FindFirstObjectByType<PlayerHealth>();
+        if (playerHealth != null)
+        {
+            playerTarget = playerHealth.transform;
+            return;
+        }
+
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
             playerTarget = player.transform;
@@ -698,9 +706,12 @@ public class EnemyAIController : MonoBehaviour
             return false;
         }
 
+        float effectiveAttackRange = attackPattern != null ? attackPattern.AttackRange : attackRange;
+        float clampedMaxRadius = Mathf.Min(swarmMaxRadius, Mathf.Max(swarmMinRadius + 0.5f, effectiveAttackRange * 1.1f));
+
         for (int i = 0; i < 5; i++)
         {
-            float radius = Random.Range(swarmMinRadius, swarmMaxRadius);
+            float radius = Random.Range(swarmMinRadius, clampedMaxRadius);
             Vector2 circle = Random.insideUnitCircle.normalized * radius;
             Vector3 candidate = playerTarget.position + new Vector3(circle.x, 0f, circle.y);
 

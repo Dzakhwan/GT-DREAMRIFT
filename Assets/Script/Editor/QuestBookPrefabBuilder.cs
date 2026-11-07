@@ -210,28 +210,27 @@ namespace Dreamrift.QuestSystem.Editor
             Image dimImg = dimmer.GetComponent<Image>();
             dimImg.color = new Color(0f, 0f, 0f, 0.65f);
 
-            // 2. Book Frame Container (16:9 Aspect Ratio)
-            GameObject bookObj = new GameObject("BookContainer", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(UIFrameAnimation), typeof(AspectRatioFitter));
+            // 2. Book Frame Container (Proporsi diperkecil 0.72x, bebas pemaksaan FitInParent fullscreen)
+            GameObject bookObj = new GameObject("BookContainer", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(UIFrameAnimation));
             bookObj.transform.SetParent(panelRoot.transform, false);
             RectTransform bookRt = bookObj.GetComponent<RectTransform>();
             bookRt.anchorMin = new Vector2(0.5f, 0.5f);
             bookRt.anchorMax = new Vector2(0.5f, 0.5f);
+            bookRt.pivot = new Vector2(0.5f, 0.5f);
             bookRt.anchoredPosition = Vector2.zero;
-            bookRt.sizeDelta = new Vector2(1360f, 765f); // 16:9 proporsi besar dan megah
+            bookRt.sizeDelta = new Vector2(1360f, 765f);
+            bookRt.localScale = new Vector3(0.72f, 0.72f, 1f);
 
-            AspectRatioFitter arf = bookObj.GetComponent<AspectRatioFitter>();
-            arf.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-            arf.aspectRatio = 16f / 9f;
-
-            // Load all 19 frame sprites
+            // Load all 19 frame sprites dari folder QUEST BOOK (background transparan)
             Sprite[] frames = new Sprite[19];
             for (int i = 0; i <= 18; i++)
             {
-                frames[i] = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/UI/UI QUEST BOOK/Timeline 1_{i:D4}.png");
+                frames[i] = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/UI/QUEST BOOK/Timeline 1_{i:D4}.png");
             }
 
             Image bookImg = bookObj.GetComponent<Image>();
             bookImg.sprite = frames[18]; // Default show open book in editor preview
+            bookImg.preserveAspect = true;
 
             UIFrameAnimation anim = bookObj.GetComponent<UIFrameAnimation>();
             SerializedObject animSo = new SerializedObject(anim);

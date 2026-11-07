@@ -183,8 +183,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAIController
   currentState: 0
-  detectionRadius: 8
-  attackRange: 3
+  detectionRadius: 12
+  attackRange: 4.5
   chaseTickInterval: 0.15
   idleUntilDetected: 1
   deAggroMultiplier: 1.35
@@ -203,7 +203,7 @@ MonoBehaviour:
   attackAnimTrigger: Attack
   useSwarmPositioning: 1
   swarmMinRadius: 2.5
-  swarmMaxRadius: 6.5
+  swarmMaxRadius: 4.5
   repositionInterval: 2.2
   useSwarmSeparation: 1
   separationDistance: 2

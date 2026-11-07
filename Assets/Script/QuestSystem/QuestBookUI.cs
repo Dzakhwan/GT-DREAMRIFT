@@ -49,6 +49,10 @@ namespace Dreamrift.QuestSystem
         [Tooltip("Jika dicentang, arah animasi dibalik.")]
         [SerializeField] private bool invertFlipAnimationDirection = false;
 
+        [Header("Appearance & Size")]
+        [Tooltip("Skala ukuran buku di layar agar proporsional dan tidak memenuhi seluruh layar.")]
+        [SerializeField, Range(0.4f, 1.2f)] private float bookDisplayScale = 0.72f;
+
         private int currentChapterIndex = 0;
         private QuestData currentSelectedQuest;
         private bool isTransitioning = false;
@@ -91,6 +95,21 @@ namespace Dreamrift.QuestSystem
             if (pagesCanvasGroup != null)
             {
                 pagesCanvasGroup.alpha = isOpenAtStart ? 1f : 0f;
+            }
+
+            ApplyBookScale();
+        }
+
+        private void OnValidate()
+        {
+            ApplyBookScale();
+        }
+
+        public void ApplyBookScale()
+        {
+            if (frameAnimator != null)
+            {
+                frameAnimator.transform.localScale = new Vector3(bookDisplayScale, bookDisplayScale, 1f);
             }
         }
 
@@ -176,6 +195,7 @@ namespace Dreamrift.QuestSystem
             isTransitioning = false;
 
             ResolvePlayerInputs();
+            ApplyBookScale();
             bookPanelRoot.SetActive(true);
 
             // Simpan status kursor & bebaskan kursor untuk klik UI
