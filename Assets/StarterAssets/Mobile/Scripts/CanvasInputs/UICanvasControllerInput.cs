@@ -42,6 +42,14 @@ namespace StarterAssets
             starterAssetsInputs.FireInput(virtualFireState);
         }
 
+        public void VirtualMageFireInput(bool virtualMageFireState)
+        {
+            if (starterAssetsInputs != null)
+            {
+                starterAssetsInputs.MageFireInput(virtualMageFireState);
+            }
+        }
+
     }
 
 }

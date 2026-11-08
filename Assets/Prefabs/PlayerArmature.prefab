@@ -2004,6 +2004,7 @@ GameObject:
   - component: {fileID: 6438860226343819478}
   - component: {fileID: 4372390815790303942}
   - component: {fileID: 8137961312840541585}
+  - component: {fileID: 373334544830083493}
   m_Layer: 8
   m_Name: PlayerArmature
   m_TagString: Player
@@ -2125,9 +2126,15 @@ MonoBehaviour:
   LockCameraPosition: 0
   lockPitchAngle: 1
   fixedPitchAngle: 45
+  DashSpeed: 16
+  DashDuration: 0.45
+  DashCooldown: 0.75
+  DashIFrameDuration: 0.4
   _isAttacking: 0
   _lockRotation: 0
   _useAttackRootMotion: 0
+  _isCastingProjectile: 0
+  _castMoveSpeedMultiplier: 0.35
 --- !u!114 &7744810703704222998
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2161,7 +2168,9 @@ MonoBehaviour:
   look: {x: 0, y: 0}
   jump: 0
   sprint: 0
+  dash: 0
   fire: 0
+  mageFire: 0
   analogMovement: 0
   cursorLocked: 0
   cursorInputForLook: 1
@@ -2337,6 +2346,9 @@ MonoBehaviour:
   - {fileID: 3719970204866746162, guid: f403ab4856762e74a9c3e1322e97152a, type: 3}
   - {fileID: 1365781975958028635, guid: 85141bbeb5484424a857375d369264c6, type: 3}
   enableSlashArcVFX: 1
+  slashHeightOffset: 0.95
+  slashForwardOffsetPhase12: 0.72
+  slashForwardOffsetPhase3: 0.88
   comboKnockbackDistances:
   - 1.2
   - 2
@@ -2379,6 +2391,39 @@ MonoBehaviour:
   uiWorldHeightOffset: 1
   uiScreenOffset: {x: 0, y: 0}
   detectionInterval: 0.1
+--- !u!114 &373334544830083493
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7637036474981932843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 052c68981c0dfa243b479f27815d663d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerProjectileAttack
+  projectileCooldown: 1.8
+  baseProjectileDamage: 22
+  projectileSpeed: 18
+  projectileMaxRange: 18
+  autoAimRadius: 14
+  autoAimHalfAngle: 85
+  closeAutoAimRadius: 7.5
+  aimTurnSpeed: 720
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  castMoveSpeedMultiplier: 0.35
+  recoilDistance: 0.3
+  recoilDuration: 0.12
+  autoFireDelay: 0.22
+  castFailsafeDuration: 0.62
+  projectilePrefab: {fileID: 4717613612302695511, guid: fc17b90ed48a08e41a50d2ad0a99a74b, type: 3}
+  castMuzzleVFXPrefab: {fileID: 5480691696430989473, guid: 623f49930b66ecc4bbd1bdcfcb3aae61, type: 3}
+  impactVFXPrefab: {fileID: 212925849826987667, guid: cc53b174561a211429aec6710d63c277, type: 3}
+  enableKeyboardShortcutE: 1
+  projectileSkillButton: {fileID: 0}
 --- !u!1 &7876499977904483193
 GameObject:
   m_ObjectHideFlags: 0

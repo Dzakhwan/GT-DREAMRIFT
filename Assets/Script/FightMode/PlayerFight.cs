@@ -120,6 +120,11 @@ public class PlayerFight : MonoBehaviour
     private Animator animator;
     private StarterAssetsInputs input;
     private ThirdPersonController tpc;
+    private PlayerProjectileAttack projectileAttack;
+
+    // ===================== PUBLIC PROPERTIES =====================
+    public bool IsAttacking => isAttacking;
+    public Transform StaffTipOrigin => attackOrigin;
 
     // ===================== STATE =====================
     private int attackIndex = 0;
@@ -151,6 +156,8 @@ public class PlayerFight : MonoBehaviour
         tpc = GetComponent<ThirdPersonController>();
         if (tpc == null)
             tpc = GetComponentInParent<ThirdPersonController>();
+
+        projectileAttack = GetComponent<PlayerProjectileAttack>();
     }
 
     private void Start()
@@ -288,6 +295,15 @@ public class PlayerFight : MonoBehaviour
         attackOrigin = tipObj.transform;
     }
 
+    public Transform GetOrInitStaffTipOrigin()
+    {
+        if (attackOrigin == null || attackOrigin == transform)
+        {
+            EnsureStaffEquipped();
+        }
+        return attackOrigin != null ? attackOrigin : transform;
+    }
+
     private Transform FindDeepChild(Transform parent, string name)
     {
         if (parent.name == name) return parent;
@@ -380,6 +396,11 @@ public class PlayerFight : MonoBehaviour
 
     private void TryAttack()
     {
+        if (projectileAttack != null && projectileAttack.IsCasting)
+        {
+            return;
+        }
+
         if (isAttacking)
         {
             if (!isPreAttacking && attackIndex < maxComboSteps)
