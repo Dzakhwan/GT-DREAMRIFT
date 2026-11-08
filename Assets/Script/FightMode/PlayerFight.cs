@@ -371,7 +371,7 @@ public class PlayerFight : MonoBehaviour
     /// <summary>
     /// Dipanggil oleh tombol Attack di UI (mobile).
     /// </summary>
-    private void OnAttackButtonPressed()
+    public void OnAttackButtonPressed()
     {
         TryAttack();
     }

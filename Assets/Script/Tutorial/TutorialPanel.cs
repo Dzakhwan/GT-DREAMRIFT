@@ -1,24 +1,13 @@
+using System;
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using StarterAssets;
 
 /// <summary>
 /// Panel UI untuk menampilkan instruksi tutorial.
-/// Pasang script ini ke GameObject Canvas > TutorialPanel.
-///
-/// Cara setup:
-///   1. Buat Canvas di scene (jika belum ada)
-///   2. Di Canvas, buat GameObject Panel > beri nama "TutorialPanel"
-///   3. Pasang TutorialPanel.cs ke GameObject tersebut
-///   4. Assign masing-masing komponen di Inspector:
-///      - TitleText       → TextMeshPro untuk judul
-///      - DescriptionText → TextMeshPro untuk deskripsi
-///      - CloseButton     → Button "OK/Lanjut"
-///      - PanelRoot       → GameObject root panel (untuk show/hide)
-///   5. Set PanelRoot inactive di awal scene agar tersembunyi saat start
-///
-/// TutorialTrigger akan otomatis mencari instance panel ini
-/// saat player masuk area trigger.
+/// Otomatis mem-pause game (Time.timeScale = 0) saat terbuka agar Player aman dari serangan musuh,
+/// dan mengembalikan Time.timeScale = 1 saat tombol Close ditekan.
 /// </summary>
 public class TutorialPanel : MonoBehaviour
 {
@@ -28,14 +17,19 @@ public class TutorialPanel : MonoBehaviour
     [SerializeField] private Button closeButton;
     [SerializeField] private GameObject panelRoot;
 
-    [Header("Settings")]
-    [Tooltip("Panel otomatis hilang jika true setelah closeButton ditekan")]
+    [Header("Pause & Behavior Settings")]
+    [Tooltip("Otomatis pause game (Time.timeScale = 0) saat panel tutorial terbuka")]
+    [SerializeField] private bool pauseGameWhenOpen = true;
+
+    [Tooltip("Panel otomatis disembunyikan setelah closeButton ditekan")]
     [SerializeField] private bool hideOnClose = true;
 
-    // Callback yang dipanggil saat panel ditutup
-    private System.Action onCloseCallback;
+    private Action onCloseCallback;
+    private StarterAssetsInputs cachedInputs;
+    private bool wasCursorLocked;
 
     public static TutorialPanel Instance { get; private set; }
+    public bool IsOpen => panelRoot != null && panelRoot.activeSelf;
 
     private void Awake()
     {
@@ -48,19 +42,21 @@ public class TutorialPanel : MonoBehaviour
         Instance = this;
 
         if (closeButton != null)
+        {
+            closeButton.onClick.RemoveListener(OnCloseButtonPressed);
             closeButton.onClick.AddListener(OnCloseButtonPressed);
+        }
 
         if (panelRoot != null)
+        {
             panelRoot.SetActive(false);
+        }
     }
 
     /// <summary>
-    /// Tampilkan panel tutorial dengan judul dan deskripsi tertentu.
+    /// Tampilkan panel tutorial dengan judul dan deskripsi tertentu, serta pause game.
     /// </summary>
-    /// <param name="title">Judul tutorial</param>
-    /// <param name="description">Isi instruksi</param>
-    /// <param name="onClose">Callback saat panel ditutup (opsional)</param>
-    public void Show(string title, string description, System.Action onClose = null)
+    public void Show(string title, string description, Action onClose = null)
     {
         if (titleText != null)
             titleText.text = title;
@@ -72,28 +68,83 @@ public class TutorialPanel : MonoBehaviour
 
         if (panelRoot != null)
             panelRoot.SetActive(true);
+
+        if (pauseGameWhenOpen)
+        {
+            Time.timeScale = 0f;
+        }
+
+        // Hentikan input pergerakan sementara dan pastikan kursor/touch bebas menekan tombol UI
+        if (cachedInputs == null)
+            cachedInputs = FindFirstObjectByType<StarterAssetsInputs>();
+
+        if (cachedInputs != null)
+        {
+            wasCursorLocked = cachedInputs.cursorLocked;
+            cachedInputs.move = Vector2.zero;
+            cachedInputs.look = Vector2.zero;
+            cachedInputs.cursorInputForLook = false;
+            cachedInputs.SetCursorState(false);
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
     }
 
     /// <summary>
-    /// Sembunyikan panel tutorial.
+    /// Sembunyikan panel tutorial tanpa memicu callback.
     /// </summary>
     public void Hide()
     {
         if (panelRoot != null)
             panelRoot.SetActive(false);
 
+        if (pauseGameWhenOpen)
+        {
+            Time.timeScale = 1f;
+        }
+
+        RestoreInputState();
         onCloseCallback = null;
     }
 
-    private void OnCloseButtonPressed()
+    public void OnCloseButtonPressed()
     {
-        if (hideOnClose)
+        if (hideOnClose && panelRoot != null)
         {
-            if (panelRoot != null)
-                panelRoot.SetActive(false);
+            panelRoot.SetActive(false);
         }
 
-        onCloseCallback?.Invoke();
+        // Kembalikan waktu permainan ke normal (Time.timeScale = 1)
+        if (pauseGameWhenOpen)
+        {
+            Time.timeScale = 1f;
+        }
+
+        RestoreInputState();
+
+        Action callback = onCloseCallback;
         onCloseCallback = null;
+        callback?.Invoke();
+    }
+
+    private void RestoreInputState()
+    {
+        if (cachedInputs != null)
+        {
+            cachedInputs.cursorInputForLook = true;
+            cachedInputs.SetCursorState(wasCursorLocked);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Time.timeScale = 1f;
+            Instance = null;
+        }
     }
 }

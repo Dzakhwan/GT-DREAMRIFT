@@ -2,104 +2,107 @@ using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
-/// Area trigger untuk memicu tutorial.
-/// Pasang script ini ke GameObject dengan Collider (IsTrigger) di scene.
-///
-/// Cara setup:
-///   1. Buat GameObject kosong di scene
-///   2. Tambahkan Collider (BoxCollider / SphereCollider)
-///   3. Centang IsTrigger
-///   4. Atur posisi dan ukuran Collider sesuai area tutorial
-///   5. Set Layer ke "Trigger" atau layer yang berinteraksi dengan Player
-///   6. Tambahkan TutorialTrigger.cs
-///   7. Isi Title dan Description di Inspector
-///   8. (Opsional) Hubungkan onTutorialTriggered ke script lain
-///      Contoh: monster chase → drag GameObject monster, pilih method StartChase()
-///
-/// Saat Player masuk area, TutorialPanel.Instance.Show() akan dipanggil
-/// dan onTutorialTriggered akan di-fire.
-///
-/// Untuk skenario "baca tutorial lalu dikejar monster":
-///   - Set oneTimeOnly = true
-///   - di onTutorialTriggered, hubungkan ke method spawn/activate monster
-///   - Monster chase akan mulai BERSAMAAN panel tutorial muncul
-///   - Jika ingin monster mulai setelah panel ditutup, gunakan TutorialPanel.onClose
-///     (tidak di-inspector, perlu dari script lain dengan Subscribe)
+/// Area trigger untuk memicu tahapan tutorial atau menyelesaikan objektif Waypoint/Pinpoint.
+/// Pasang pada GameObject Pinpoint (misal: Cylinder/Cube dengan Collider IsTrigger = true).
 /// </summary>
 [RequireComponent(typeof(Collider))]
 public class TutorialTrigger : MonoBehaviour
 {
-    [Header("Tutorial Content")]
-    [Tooltip("Judul yang tampil di panel tutorial")]
-    [SerializeField] private string title = "Tutorial";
+    public enum TriggerRole
+    {
+        ShowPopupOnly = 0,
+        ReachPinpointObjective = 1
+    }
 
-    [Tooltip("Isi instruksi tutorial")]
-    [SerializeField] [TextArea(3, 8)] private string description = "";
+    [Header("Trigger Role")]
+    [Tooltip("ReachPinpointObjective = menyelesaikan Tahap 1 (Movement) saat Player menyentuh Pinpoint ini.\nShowPopupOnly = menampilkan popup tutorial custom.")]
+    [SerializeField] private TriggerRole triggerRole = TriggerRole.ReachPinpointObjective;
+
+    [Header("Tutorial Content (Untuk ShowPopupOnly)")]
+    [SerializeField] private string title = "Tutorial";
+    [SerializeField, TextArea(3, 8)] private string description = "";
 
     [Header("Behavior")]
-    [Tooltip("Hanya trigger sekali. Set false jika ingin tiap masuk area muncul panel lagi")]
     [SerializeField] private bool oneTimeOnly = true;
-
-    [Tooltip("Tag yang digunakan untuk mendeteksi Player. Kosongkan untuk trigger semua objek")]
     [SerializeField] private string playerTag = "Player";
+    [SerializeField] private bool hideAfterTriggered = true;
+
+    [Header("Visual Pinpoint Animation (Opsional)")]
+    [SerializeField] private bool rotatePinpoint = true;
+    [SerializeField] private float rotationSpeed = 90f;
 
     [Header("Events")]
-    [Tooltip("Dipanggil saat player masuk area trigger (setelah panel ditampilkan). " +
-             "Gunakan untuk start quest, aktifkan monster chase, dll.")]
     [SerializeField] private UnityEvent onTutorialTriggered;
+    [SerializeField] private UnityEvent onPanelClosed;
 
     private bool hasBeenTriggered = false;
-
-    // Cached reference agar tidak GetComponent tiap frame
     private Collider triggerCollider;
 
     private void Awake()
     {
         triggerCollider = GetComponent<Collider>();
-        triggerCollider.isTrigger = true;
+        if (triggerCollider != null)
+        {
+            triggerCollider.isTrigger = true;
+        }
+    }
+
+    private void Update()
+    {
+        if (rotatePinpoint)
+        {
+            transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime, Space.World);
+        }
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (oneTimeOnly && hasBeenTriggered) return;
-
-        // Filter tag jika diisi
         if (!string.IsNullOrEmpty(playerTag) && !other.CompareTag(playerTag)) return;
 
         TriggerTutorial();
     }
 
-    /// <summary>
-    /// Jalankan tutorial: tampilkan panel + fire event.
-    /// Method public agar bisa dipanggil dari script lain jika perlu.
-    /// </summary>
     public void TriggerTutorial()
     {
-        if (hasBeenTriggered) return;
+        if (oneTimeOnly && hasBeenTriggered) return;
         hasBeenTriggered = true;
-
-        // Cari TutorialPanel di scene
-        if (TutorialPanel.Instance != null)
-        {
-            TutorialPanel.Instance.Show(title, description);
-        }
-        else
-        {
-            Debug.LogWarning($"[TutorialTrigger] TutorialPanel.Instance tidak ditemukan. " +
-                             $"Pastikan ada TutorialPanel di scene.", this);
-        }
 
         onTutorialTriggered?.Invoke();
 
-        Debug.Log($"[TutorialTrigger] Tutorial '{title}' ditampilkan.", this);
+        if (triggerRole == TriggerRole.ReachPinpointObjective)
+        {
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.OnPinpointReached();
+            }
+        }
+        else
+        {
+            if (TutorialPanel.Instance != null)
+            {
+                TutorialPanel.Instance.Show(title, description, () =>
+                {
+                    onPanelClosed?.Invoke();
+                });
+            }
+            else
+            {
+                Debug.LogWarning("[TutorialTrigger] TutorialPanel.Instance tidak ditemukan di scene!", this);
+                onPanelClosed?.Invoke();
+            }
+        }
+
+        if (hideAfterTriggered)
+        {
+            gameObject.SetActive(false);
+        }
     }
 
-    /// <summary>
-    /// Reset trigger agar bisa dipicu lagi (panggil dari external script jika perlu).
-    /// </summary>
     public void ResetTrigger()
     {
         hasBeenTriggered = false;
+        gameObject.SetActive(true);
     }
 
     private void OnDrawGizmosSelected()
@@ -110,6 +113,8 @@ public class TutorialTrigger : MonoBehaviour
         if (triggerCollider == null) return;
 
         Gizmos.color = new Color(0f, 0.8f, 1f, 0.3f);
+        Matrix4x4 oldMatrix = Gizmos.matrix;
+        Gizmos.matrix = transform.localToWorldMatrix;
 
         if (triggerCollider is BoxCollider box)
         {
@@ -123,5 +128,11 @@ public class TutorialTrigger : MonoBehaviour
             Gizmos.color = new Color(0f, 0.8f, 1f, 0.8f);
             Gizmos.DrawWireSphere(sphere.center, sphere.radius);
         }
+        else if (triggerCollider is CapsuleCollider capsule)
+        {
+            Gizmos.DrawWireSphere(capsule.center, capsule.radius);
+        }
+
+        Gizmos.matrix = oldMatrix;
     }
 }
