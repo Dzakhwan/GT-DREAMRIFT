@@ -104,6 +104,13 @@ namespace StarterAssets
         public bool _lockRotation = false;
         public bool _useAttackRootMotion = false;
 
+        [Tooltip("True saat karakter sedang melakukan cast Mage Projectile")]
+        public bool _isCastingProjectile = false;
+
+        [Tooltip("Pengali kecepatan gerak saat cast Mage Projectile (Cast Strafe Glide)")]
+        [Range(0f, 1f)]
+        public float _castMoveSpeedMultiplier = 0.35f;
+
         // dash state
         private bool _isDashing = false;
         private float _dashTimer = 0.0f;
@@ -111,6 +118,7 @@ namespace StarterAssets
         private Vector3 _dashDirection = Vector3.forward;
         private int _animIDDash;
         private PlayerFight _playerFight;
+        private PlayerProjectileAttack _playerProjectileAttack;
         private PlayerHealth _playerHealth;
 
         public bool IsDashing => _isDashing;
@@ -180,6 +188,7 @@ namespace StarterAssets
             _controller = GetComponent<CharacterController>();
             _input = GetComponent<StarterAssetsInputs>();
             _playerFight = GetComponent<PlayerFight>();
+            _playerProjectileAttack = GetComponent<PlayerProjectileAttack>();
             _playerHealth = GetComponent<PlayerHealth>();
 #if ENABLE_INPUT_SYSTEM
             _playerInput = GetComponent<PlayerInput>();
@@ -323,6 +332,11 @@ namespace StarterAssets
                 _playerFight.CancelAttack();
             }
             _isAttacking = false;
+            if (_playerProjectileAttack != null)
+            {
+                _playerProjectileAttack.CancelCast();
+            }
+            _isCastingProjectile = false;
 
             // 3. Picu I-Frames di PlayerHealth agar kebal terhadap serangan musuh
             if (_playerHealth != null)
@@ -365,6 +379,7 @@ namespace StarterAssets
 
             // KUNCI 1: Hentikan akselerasi pergerakan dari input saat sedang menyerang
             if (_isAttacking) targetSpeed = 0.0f;
+            else if (_isCastingProjectile) targetSpeed *= _castMoveSpeedMultiplier;
 
             // a reference to the players current horizontal velocity
             float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;
@@ -396,11 +411,15 @@ namespace StarterAssets
             {
                 _targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg +
                                   _mainCamera.transform.eulerAngles.y;
-                float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, _targetRotation, ref _rotationVelocity,
-                    RotationSmoothTime);
 
-                // rotate to face input direction relative to camera position
-                transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
+                if (!_isCastingProjectile)
+                {
+                    float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, _targetRotation, ref _rotationVelocity,
+                        RotationSmoothTime);
+
+                    // rotate to face input direction relative to camera position
+                    transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
+                }
             }
 
             Vector3 targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
@@ -445,7 +464,7 @@ namespace StarterAssets
 
         private void JumpAndGravity()
         {
-            if (_isAttacking || _isDashing)
+            if (_isAttacking || _isDashing || _isCastingProjectile)
             {
                 _input.jump = false;
             }

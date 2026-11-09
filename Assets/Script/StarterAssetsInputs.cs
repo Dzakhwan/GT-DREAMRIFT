@@ -15,6 +15,7 @@ namespace StarterAssets
 		public bool dash;
 
 		public bool fire;
+		public bool mageFire;
 
 		[Header("Movement Settings")]
 		public bool analogMovement;
@@ -139,6 +140,14 @@ namespace StarterAssets
 				FireInput(value.isPressed);
 			}
 		}
+
+		public void OnMageFire(InputValue value)
+		{
+			if (!Application.isMobilePlatform)
+			{
+				MageFireInput(value.isPressed);
+			}
+		}
 #endif
 
 
@@ -200,6 +209,11 @@ namespace StarterAssets
 		public void FireInput(bool newFireState)
 		{
 			fire = newFireState;
+		}
+
+		public void MageFireInput(bool newMageFireState)
+		{
+			mageFire = newMageFireState;
 		}
 	}
 
