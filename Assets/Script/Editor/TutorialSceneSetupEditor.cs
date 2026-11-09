@@ -148,28 +148,28 @@ public static class TutorialSceneSetupEditor
         GameObject titleObj = new GameObject("TitleText", typeof(RectTransform), typeof(TextMeshProUGUI));
         titleObj.transform.SetParent(panelRoot.transform, false);
         RectTransform titleRect = titleObj.GetComponent<RectTransform>();
-        titleRect.anchorMin = new Vector2(0.05f, 0.72f);
-        titleRect.anchorMax = new Vector2(0.95f, 0.92f);
+        titleRect.anchorMin = new Vector2(0.12f, 0.74f);
+        titleRect.anchorMax = new Vector2(0.88f, 0.90f);
         titleRect.offsetMin = Vector2.zero;
         titleRect.offsetMax = Vector2.zero;
         TextMeshProUGUI titleTmp = titleObj.GetComponent<TextMeshProUGUI>();
         titleTmp.text = "Judul Tutorial";
-        titleTmp.fontSize = 30f;
+        titleTmp.fontSize = 28f;
         titleTmp.fontStyle = FontStyles.Bold;
         titleTmp.alignment = TextAlignmentOptions.Center;
-        titleTmp.color = new Color(1f, 0.85f, 0.3f, 1f);
+        titleTmp.color = new Color(0.98f, 0.90f, 0.65f, 1f);
 
         // Description Text
         GameObject descObj = new GameObject("DescriptionText", typeof(RectTransform), typeof(TextMeshProUGUI));
         descObj.transform.SetParent(panelRoot.transform, false);
         RectTransform descRect = descObj.GetComponent<RectTransform>();
-        descRect.anchorMin = new Vector2(0.08f, 0.28f);
-        descRect.anchorMax = new Vector2(0.92f, 0.70f);
+        descRect.anchorMin = new Vector2(0.14f, 0.28f);
+        descRect.anchorMax = new Vector2(0.86f, 0.72f);
         descRect.offsetMin = Vector2.zero;
         descRect.offsetMax = Vector2.zero;
         TextMeshProUGUI descTmp = descObj.GetComponent<TextMeshProUGUI>();
         descTmp.text = "Deskripsi instruksi tutorial di sini.";
-        descTmp.fontSize = 22f;
+        descTmp.fontSize = 20f;
         descTmp.alignment = TextAlignmentOptions.Center;
         descTmp.color = Color.white;
 
@@ -177,13 +177,24 @@ public static class TutorialSceneSetupEditor
         GameObject btnObj = new GameObject("CloseButton", typeof(RectTransform), typeof(Image), typeof(Button));
         btnObj.transform.SetParent(panelRoot.transform, false);
         RectTransform btnRect = btnObj.GetComponent<RectTransform>();
-        btnRect.anchorMin = new Vector2(0.32f, 0.07f);
-        btnRect.anchorMax = new Vector2(0.68f, 0.22f);
+        btnRect.anchorMin = new Vector2(0.35f, 0.10f);
+        btnRect.anchorMax = new Vector2(0.65f, 0.23f);
         btnRect.offsetMin = Vector2.zero;
         btnRect.offsetMax = Vector2.zero;
         Image btnImg = btnObj.GetComponent<Image>();
-        btnImg.color = new Color(0.2f, 0.65f, 0.3f, 1f);
+        btnImg.color = new Color(0.22f, 0.58f, 0.32f, 0.95f);
         Button closeBtn = btnObj.GetComponent<Button>();
+
+        // Load custom sprite if available
+        Sprite panelSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/UI TUTORIAL/tutorial panel.png");
+        if (panelSprite != null)
+        {
+            bg.sprite = panelSprite;
+            bg.color = Color.white;
+            bg.type = Image.Type.Simple;
+            bg.preserveAspect = true;
+            rootRect.sizeDelta = new Vector2(920f, 540f);
+        }
 
         GameObject btnTextObj = new GameObject("Text (TMP)", typeof(RectTransform), typeof(TextMeshProUGUI));
         btnTextObj.transform.SetParent(btnObj.transform, false);
